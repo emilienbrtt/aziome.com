@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #000000;
+  --fg: #F4F4F5;
+  --muted: #9CA3AF;
+  --gold-1: #D4AF37;
+  --gold-2: #F6E7B2;
+  --glow: rgba(212,175,55,0.22);
+}
+
+html, body, #__next { height: 100%; }
+body { background: var(--bg); color: var(--fg); }
+
+/* Gold gradient text helper */
+.gold-text {
+  background: linear-gradient(92deg, var(--gold-1), var(--gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Focus ring */
+:focus-visible { outline: 2px solid rgba(246,231,178,0.7); outline-offset: 2px; }
+
+/* Subtle glass background */
+.glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
