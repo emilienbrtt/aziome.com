@@ -1,3 +1,4 @@
+'use client';
 const logos = ["Shopify","WooCommerce","HubSpot","Notion","n8n","Stripe","GA4","Meta Ads"];
 
 export default function Integrations() {
