@@ -1,3 +1,4 @@
+'use client';
 import { cn } from "./cn";
 export default function Card({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
