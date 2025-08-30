@@ -1,3 +1,4 @@
+'use client';
 import Card from "./Card";
 import { Headphones, Repeat, BarChart2 } from "lucide-react";
 
