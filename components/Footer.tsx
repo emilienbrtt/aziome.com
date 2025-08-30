@@ -1,3 +1,4 @@
+'use client';
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-[rgba(255,255,255,0.06)]">
