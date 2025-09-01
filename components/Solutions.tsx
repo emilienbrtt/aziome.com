@@ -80,7 +80,7 @@ function DetailCard({ which, onClose }: { which: Exclude<Key, null>; onClose: ()
           <Headphones className="text-[color:var(--gold-1)]" />
           <div className="flex-1">
             <div className="flex items-start justify-between gap-4">
-              <h3 className="text-2xl font-semibold">SAV — Détails</h3>
+              <h3 className="text-2xl font-semibold">SAV</h3>
               <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
             </div>
 
@@ -131,7 +131,7 @@ function DetailCard({ which, onClose }: { which: Exclude<Key, null>; onClose: ()
           <Repeat className="text-[color:var(--gold-1)]" />
           <div className="flex-1">
             <div className="flex items-start justify-between gap-4">
-              <h3 className="text-2xl font-semibold">CRM & Relances — Détails</h3>
+              <h3 className="text-2xl font-semibold">CRM & Relances</h3>
               <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
             </div>
 
@@ -180,7 +180,7 @@ function DetailCard({ which, onClose }: { which: Exclude<Key, null>; onClose: ()
         <BarChart2 className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">Reporting & KPI — Détails</h3>
+            <h3 className="text-2xl font-semibold">Reporting & KPI</h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
