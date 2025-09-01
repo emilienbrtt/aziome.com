@@ -14,7 +14,7 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
           className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.1]"
         >
-          <span className="gold-text">Des agents IA, pas des gadgets.</span>
+          <span className="gold-text">Automatisez vos tâches avec l'IA.</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
