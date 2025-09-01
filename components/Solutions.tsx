@@ -12,7 +12,7 @@ export default function Solutions() {
           <div className="flex items-start gap-3">
             <Headphones className="text-[color:var(--gold-1)]" />
             <div>
-              <h3 className="text-xl font-semibold">SAV E‑commerce</h3>
+              <h3 className="text-xl font-semibold">SAV</h3>
               <ul className="mt-2 text-sm text-muted list-disc pl-4 space-y-1">
                 <li>Suivi colis, retours, FAQ intelligentes</li>
                 <li>Multi‑canal (email, chat, WhatsApp)</li>
