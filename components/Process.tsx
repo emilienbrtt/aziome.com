@@ -10,7 +10,7 @@ const steps = [
 export default function Process() {
   return (
     <section id="process" className="max-w-6xl mx-auto px-6 py-20">
-      <h2 className="text-3xl md:text-4xl font-semibold mb-8">Simple. Sur vos outils. Sous contrôle.</h2>
+      <h2 className="text-3xl md:text-4xl font-semibold mb-8">Opérationnel en 5 jours.</h2>
       <div className="grid md:grid-cols-3 gap-6">
         {steps.map((s, i) => (
           <motion.div
