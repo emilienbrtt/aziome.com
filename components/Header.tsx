@@ -26,9 +26,9 @@ export default function Header() {
             width={56}
             height={56}
             priority
-            className="h-10 w-10 md:h-12 md:w-12 [filter:drop-shadow(0_0_30px_rgba(212,175,55,.35))] transition-transform group-hover:scale-105"
+            className="h-12 w-12 md:h-14 md:w-14 [filter:drop-shadow(0_0_30px_rgba(212,175,55,.35))] transition-transform group-hover:scale-105"
           />
-          <span className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-[#D4AF37] to-[#F6E7B2] bg-clip-text text-transparent tracking-tight">
+          <span className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-[#D4AF37] to-[#F6E7B2] bg-clip-text text-transparent tracking-tight">
             Aziome
           </span>
         </Link>
