@@ -6,18 +6,14 @@ import { MessageCircle, Send, X } from "lucide-react";
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatWidget() {
-  // La fenêtre est fermée par défaut
   const [open, setOpen] = useState(false);
-
-  // "Besoin d’aide ?" visible au début pour attirer l’attention
-  const [hintVisible, setHintVisible] = useState(true);
-
+  const [hintVisible, setHintVisible] = useState(true); // “Besoin d’aide ?”
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // on masque le hint après 10 s si la personne ne clique pas
+  // on peut garder l’auto-hide du hint après 10s (pas d’animation)
   useEffect(() => {
     if (!open && hintVisible) {
       const t = setTimeout(() => setHintVisible(false), 10000);
@@ -46,11 +42,11 @@ export default function ChatWidget() {
           messages: [...msgs, { role: "user", content: question }],
         }),
       });
-
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const { reply } = await r.json();
       setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
     } catch (e) {
+      console.error(e);
       setMsgs((m) => [
         ...m,
         {
@@ -59,7 +55,6 @@ export default function ChatWidget() {
             "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
         },
       ]);
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -76,10 +71,10 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* --- Bulle flottante (visible quand la fenêtre est fermée) --- */}
+      {/* --- Bulle + petit onglet quand la fenêtre est fermée --- */}
       {!open && (
         <>
-          {/* Petit onglet “Besoin d’aide ?” (discret, pulsant) */}
+          {/* Onglet “Besoin d’aide ?” – fixe, pas d’animation */}
           {hintVisible && (
             <button
               onClick={openChat}
@@ -88,22 +83,21 @@ export default function ChatWidget() {
                 rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
                 bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
                 shadow-lg backdrop-blur
-                animate-pulse hover:animate-none hover:bg-black/80
               "
             >
               Besoin d’aide ?
             </button>
           )}
 
-          {/* La bulle */}
+          {/* Bulle – couleur constante (couleur ‘hover’) */}
           <button
             aria-label="Ouvrir le chat"
             onClick={openChat}
             className="
               fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full
               border border-[color:var(--gold-2,#f5c66a)]/30
-              bg-[color:var(--gold-2,#f5c66a)] text-black
-              shadow-lg transition hover:bg-[color:var(--gold-1,#ffd37a)]
+              bg-[color:var(--gold-1,#ffd37a)] text-black
+              shadow-lg
             "
           >
             <MessageCircle className="mx-auto h-6 w-6" />
@@ -172,14 +166,14 @@ export default function ChatWidget() {
                 focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50
               "
             />
+            {/* Bouton Envoyer – couleur fixe, un peu plus foncée */}
             <button
               onClick={send}
               disabled={loading}
               className="
                 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
                 text-black border border-[color:var(--gold-2,#f5c66a)]/30
-                bg-[color:var(--gold-2,#f5c66a)] hover:bg-[color:var(--gold-1,#ffd37a)]
-                disabled:opacity-50
+                bg-[#e6b34f] disabled:opacity-50
               "
             >
               <Send className="h-4 w-4" />
