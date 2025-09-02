@@ -48,7 +48,20 @@ export default function Header() {
 
         {/* CTA */}
         <div className="py-3">
-          <Button href="#contact" variant="primary">Demander une démo</Button>
+          <Button
+  href={
+    "mailto:aziomeagency@gmail.com" +
+    "?subject=" + encodeURIComponent("Demande de démo — Aziome") +
+    "&body=" + encodeURIComponent(
+      "Bonjour Aziome,\n\n" +
+      "Nom : \nSociété : \nTéléphone (optionnel) : \nBesoin principal : \n\n" +
+      "Merci !"
+    )
+  }
+  variant="primary"
+>
+  Demander une démo
+</Button>
         </div>
       </div>
     </header>
