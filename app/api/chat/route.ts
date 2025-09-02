@@ -1,37 +1,50 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai } from "@/lib/openai";
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const { message } = await req.json();
+
+    const assistantId =
+      process.env.AZIOME_ASSISTANT_ID ??
+      process.env.AZIA_ASSISTANT_ID ??             // ancien nom sans tiret
+      process.env["Azia-ASSISTANT-ID"];            // ancien nom avec tiret
+
+    if (!assistantId) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY manquante sur le serveur" },
+        { error: "AZIOME_ASSISTANT_ID introuvable" },
         { status: 500 }
       );
     }
 
-    const { messages = [] } = await req.json();
-
-    const r = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "Tu es Aziome Assistant, utile et concis." },
-        ...messages,
-      ],
-      temperature: 0.6,
+    const thread = await openai.beta.threads.create();
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: message ?? "",
     });
 
-    const reply = r.choices[0]?.message?.content ?? "Désolé, pas de réponse.";
-    return NextResponse.json({ reply });
+    let run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistantId,
+    });
+
+    while (!["completed", "failed", "expired", "cancelled"].includes(run.status)) {
+      await new Promise((r) => setTimeout(r, 800));
+      run = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    if (run.status !== "completed") {
+      return NextResponse.json({ error: `Run status: ${run.status}` }, { status: 500 });
+    }
+
+    const list = await openai.beta.threads.messages.list(thread.id, { order: "desc", limit: 1 });
+    const answer =
+      list.data?.[0]?.content?.[0]?.type === "text"
+        ? list.data[0].content[0].text.value
+        : "Je n’ai pas pu formuler de réponse pour le moment.";
+
+    return NextResponse.json({ answer });
   } catch (err: any) {
-    console.error("API /api/chat error:", err);
-    return NextResponse.json(
-      { error: err?.message ?? "Erreur serveur" },
-      { status: 500 }
-    );
+    console.error("/api/chat error:", err?.message || err);
+    return NextResponse.json({ error: "server_error", detail: err?.message || "unknown" }, { status: 500 });
   }
 }
