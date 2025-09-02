@@ -1,40 +1,37 @@
-// app/api/chat/route.ts
+import OpenAI from "openai";
 import { NextResponse } from "next/server";
-// si l'alias "@/lib/..." marche, garde cette ligne
-import { openai } from "@/lib/openai";
-// si ça ne compile pas, commente la ligne au-dessus et décommente celle-ci :
-// import { openai } from "../../../lib/openai";
 
-export const runtime = "nodejs"; // important pour éviter Edge/Fetch dans OpenAI
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
-
-    if (!Array.isArray(messages)) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "Le champ 'messages' doit être un tableau." },
-        { status: 400 }
+        { error: "OPENAI_API_KEY manquante sur le serveur" },
+        { status: 500 }
       );
     }
 
-    const completion = await openai.chat.completions.create({
+    const { messages = [] } = await req.json();
+
+    const r = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content:
-            "Tu es **Aziome Assistant**, conseiller IA d’Aziome. Tu réponds en français, avec des réponses claires, brèves et utiles.",
-        },
+        { role: "system", content: "Tu es Aziome Assistant, utile et concis." },
         ...messages,
       ],
-      temperature: 0.3,
+      temperature: 0.6,
     });
 
-    const reply = completion.choices?.[0]?.message?.content ?? "";
+    const reply = r.choices[0]?.message?.content ?? "Désolé, pas de réponse.";
     return NextResponse.json({ reply });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
+  } catch (err: any) {
+    console.error("API /api/chat error:", err);
+    return NextResponse.json(
+      { error: err?.message ?? "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }
