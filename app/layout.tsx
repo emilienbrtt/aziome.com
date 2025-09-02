@@ -1,8 +1,8 @@
-import ChatWidget from "../components/ChatWidget";
 import "./../styles/globals.css";
 import "./../styles/tokens.css";
 import { Sora, Inter } from "next/font/google";
 import type { Metadata } from "next";
+import ChatWidget from "../components/ChatWidget";
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -21,10 +21,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${sora.variable} ${inter.variable}`}>
-      <ChatWidget />
       <body>
         {/* Plausible (replace domain in data-domain) */}
-        <script defer data-domain="aziome.example" src="https://plausible.io/js/script.js"></script>
+        <script defer data-domain="aziome.com" src="https://plausible.io/js/script.js"></script>
         {children}
         <ChatWidget />
       </body>
