@@ -1,161 +1,161 @@
-// components/ChatWidget.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MessageCircle, Send, X } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatWidget() {
-  const [open, setOpen] = useState(true);
+  // <- La fenêtre n'est PAS ouverte au chargement
+  const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  async function sendMessage(e?: React.FormEvent) {
-    e?.preventDefault();
-    const text = input.trim();
-    if (!text || sending) return;
+  // fait défiler vers le bas quand un nouveau message arrive
+  useEffect(() => {
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [msgs, open, loading]);
 
-    // 1) on ajoute le message utilisateur + le placeholder assistant "…"
-    const user: Msg = { role: "user", content: text };
-    setMessages((prev) => [...prev, user, { role: "assistant", content: "…" }]);
+  async function send() {
+    if (!input.trim() || loading) return;
+    const question = input.trim();
     setInput("");
-    setSending(true);
-
+    setMsgs((m) => [...m, { role: "user", content: question }]);
+    setLoading(true);
     try {
-      const res = await fetch("/api/chat", {
+      const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, user].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: [...msgs, { role: "user", content: question }],
         }),
       });
 
-      if (!res.ok) {
-        // on lit le message d'erreur s'il existe
-        let errText = "Erreur serveur.";
-        try {
-          const j = await res.json();
-          if (j?.error) errText = j.error;
-        } catch {}
-        replaceLastAssistant(`Désolé, je rencontre un souci (${errText}).`);
-        return;
-      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-      const data = (await res.json()) as { reply?: string };
-      const reply = data?.reply?.trim();
-      if (!reply) {
-        replaceLastAssistant("Désolé, je n’ai pas de réponse pour l’instant.");
-      } else {
-        replaceLastAssistant(reply);
-      }
-    } catch (err: any) {
-      replaceLastAssistant(
-        "Désolé, je n’arrive pas à contacter le serveur. Réessaie dans un instant."
-      );
+      // L’API doit renvoyer { reply: "..." }
+      const { reply } = await r.json();
+      setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
+    } catch (e) {
+      // Message d’erreur lisible si l’API plante
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+        },
+      ]);
+      console.error(e);
     } finally {
-      setSending(false);
+      setLoading(false);
     }
   }
 
-  // remplace le dernier message assistant (le placeholder "…")
-  function replaceLastAssistant(text: string) {
-    setMessages((prev) => {
-      const copy = [...prev];
-      // on cherche le dernier message assistant
-      for (let i = copy.length - 1; i >= 0; i--) {
-        if (copy[i].role === "assistant") {
-          copy[i] = { role: "assistant", content: text };
-          return copy;
-        }
-      }
-      // si on ne le trouve pas, on pousse quand même la réponse
-      copy.push({ role: "assistant", content: text });
-      return copy;
-    });
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") send();
   }
 
-  // Styles brand (or) via variables CSS déjà présentes dans ton projet
-  const goldBtn =
-    "px-4 py-2 rounded-md font-medium text-black transition";
-  const goldBtnStyle: React.CSSProperties = {
-    background: "var(--gold-2)",
-  };
-  const goldBtnHover: React.CSSProperties = {
-    background: "var(--gold-1)",
-  };
-
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {/* Bouton fl ottant si tu veux pouvoir fermer/rouvrir */}
-      {/* <button
-        onClick={() => setOpen((o) => !o)}
-        className="rounded-full w-12 h-12 shadow-lg border border-white/10"
-        style={{ background: "radial-gradient(circle at 30% 30%, var(--gold-2), var(--gold-1))" }}
-        aria-label="Ouvrir le chat"
-      /> */}
+    <>
+      {/* --- Bulle flottante (visible quand la fenêtre est fermée) --- */}
+      {!open && (
+        <button
+          aria-label="Ouvrir le chat"
+          onClick={() => setOpen(true)}
+          className="
+            fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full
+            border border-[color:var(--gold-2,#f5c66a)]/30
+            bg-[color:var(--gold-2,#f5c66a)] text-black
+            shadow-lg transition hover:bg-[color:var(--gold-1,#ffd37a)]
+          "
+        >
+          <MessageCircle className="mx-auto h-6 w-6" />
+        </button>
+      )}
 
+      {/* --- Fenêtre du chat --- */}
       {open && (
-        <div className="w-[340px] h-[480px] rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-xl flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-            <div className="text-sm font-semibold">
+        <div
+          className="
+            fixed right-6 bottom-6 z-50 w-[360px] max-w-[92vw]
+            rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
+            bg-black/80 backdrop-blur p-4 shadow-2xl
+          "
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">
               Aziome Assistant
-            </div>
+            </h4>
             <button
-              onClick={() => setOpen(false)}
-              className="text-xs opacity-70 hover:opacity-100"
+              aria-label="Fermer le chat"
+              onClick={() => setOpen(false)} // <- on ferme, mais la bulle reste
+              className="rounded-full p-1 text-[color:var(--gold-2,#f5c66a)]/80 hover:text-[color:var(--gold-1,#ffd37a)]"
             >
-              Fermer
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Zone messages */}
-          <div className="flex-1 overflow-auto p-3 space-y-2">
-            {messages.map((m, i) => (
+          <div ref={listRef} className="mb-3 h-64 space-y-3 overflow-y-auto pr-2">
+            {msgs.length === 0 && (
+              <p className="text-xs text-neutral-400">
+                Pose-moi une question sur vos besoins (SAV, CRM, Reporting…).
+              </p>
+            )}
+
+            {msgs.map((m, i) => (
               <div
                 key={i}
                 className={
                   m.role === "user"
-                    ? "ml-auto max-w-[80%] rounded-xl px-3 py-2 text-sm bg-neutral-800 text-neutral-100"
-                    : "mr-auto max-w-[80%] rounded-xl px-3 py-2 text-sm bg-black/40 border border-white/10"
+                    ? "ml-auto max-w-[85%] rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
+                    : "max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm"
                 }
               >
                 {m.content}
               </div>
             ))}
+
+            {loading && (
+              <div className="max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm">
+                …
+              </div>
+            )}
           </div>
 
-          {/* Zone input */}
-          <form onSubmit={sendMessage} className="p-3 border-t border-white/10">
-            <div className="flex gap-2">
-              <input
-                className="flex-1 rounded-md bg-black/50 border border-white/10 px-3 py-2 text-sm outline-none focus:border-white/20"
-                placeholder="Pose ta question…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={sending}
-              />
-              <button
-                type="submit"
-                disabled={sending}
-                className={`${goldBtn} ${sending ? "opacity-60 cursor-not-allowed" : "hover:brightness-105"}`}
-                style={goldBtnStyle}
-                onMouseEnter={(e) =>
-                  Object.assign((e.target as HTMLButtonElement).style, goldBtnHover)
-                }
-                onMouseLeave={(e) =>
-                  Object.assign((e.target as HTMLButtonElement).style, goldBtnStyle)
-                }
-              >
-                Envoyer
-              </button>
-            </div>
-          </form>
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Pose ta question…"
+              className="
+                flex-1 rounded-xl border border-neutral-800 bg-neutral-950
+                px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500
+                focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50
+              "
+            />
+            <button
+              onClick={send}
+              disabled={loading}
+              className="
+                inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
+                text-black border border-[color:var(--gold-2,#f5c66a)]/30
+                bg-[color:var(--gold-2,#f5c66a)] hover:bg-[color:var(--gold-1,#ffd37a)]
+                disabled:opacity-50
+              "
+            >
+              <Send className="h-4 w-4" />
+              Envoyer
+            </button>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
