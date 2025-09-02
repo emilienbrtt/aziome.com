@@ -5,10 +5,17 @@ import { Headphones, Repeat, BarChart2 } from "lucide-react";
 
 type Key = 'sav' | 'crm' | 'reporting' | null;
 
+type Mini = {
+  key: Exclude<Key, null>;
+  title: string;
+  bullets: string[];
+  Icon: any;
+};
+
 export default function Solutions() {
   const [selected, setSelected] = useState<Key>(null);
 
-  // Remonte la vue sur la zone quand on ouvre un détail
+  // Remonter la vue quand un détail s'ouvre
   useEffect(() => {
     if (selected) {
       const el = document.getElementById('solutions');
@@ -16,14 +23,19 @@ export default function Solutions() {
     }
   }, [selected]);
 
-  // ⚠️ Ordre souhaité : CRM → SAV → Reporting
-  const miniCards: { key: Exclude<Key, null>; title: string; bullets: string[]; Icon: any }[] = [
-    { key: 'crm', title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
-    { key: 'sav', title: 'SAV', bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
-    { key: 'reporting', title: 'Reporting & KPI', bullets: ['Chiffres à jour', 'Alertes simples'], Icon: BarChart2 },
+  // ⚠️ Ordre cible garanti par desiredOrder + tri
+  const desiredOrder: Exclude<Key, null>[] = ['crm', 'sav', 'reporting'];
+
+  const miniCards: Mini[] = [
+    { key: 'crm',       title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
+    { key: 'sav',       title: 'SAV',            bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
+    { key: 'reporting', title: 'Reporting & KPI',bullets: ['Chiffres à jour', 'Alertes simples'],          Icon: BarChart2 },
   ];
 
-  const others = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
+  const othersBase = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
+  const others = [...othersBase].sort(
+    (a, b) => desiredOrder.indexOf(a.key) - desiredOrder.indexOf(b.key)
+  );
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
@@ -33,11 +45,11 @@ export default function Solutions() {
       {/* Grande carte au-dessus quand un agent est sélectionné */}
       {selected && (
         <div className="mb-8">
-          <DetailCard which={selected} onClose={() => setSelected(null)} />
+          <DetailCard which={selected as Exclude<Key, null>} onClose={() => setSelected(null)} />
         </div>
       )}
 
-      {/* En dessous : soit 3 mini cartes, soit les 2 restantes (même ordre que miniCards) */}
+      {/* En dessous : soit 3 mini cartes, soit les 2 restantes (ordre forcé) */}
       <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {others.map(({ key, title, bullets, Icon }) => (
           <Card key={key}>
