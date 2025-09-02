@@ -85,7 +85,7 @@ function DetailCard({ which, onClose }: { which: Exclude<Key, null>; onClose: ()
             </div>
 
             <p className="mt-3 text-muted">
-              <strong>Ce que l’agent fait :</strong> Répond aux questions fréquentes (livraison, retours, produits), donne le statut des commandes en direct, envoie des réponses validées par vous, passe à un humain si besoin.
+              <strong>Ce que l’agent fait :</strong> répond aux questions fréquentes (livraison, retours, produits), donne le statut des commandes en direct, envoie des réponses validées par vous, passe à un humain si besoin.
             </p>
 
             <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
