@@ -21,10 +21,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${sora.variable} ${inter.variable}`}>
+      <ChatWidget />
       <body>
         {/* Plausible (replace domain in data-domain) */}
         <script defer data-domain="aziome.example" src="https://plausible.io/js/script.js"></script>
         {children}
+        <ChatWidget />
       </body>
     </html>
   );
