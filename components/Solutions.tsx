@@ -5,21 +5,19 @@ import Card from './Card';
 import { Headphones, Repeat, BarChart2 } from 'lucide-react';
 
 type Key = 'crm' | 'sav' | 'reporting' | null;
-type IconType = React.ComponentType<{ className?: string }>;
 
 export default function Solutions() {
   const [selected, setSelected] = useState<Key>(null);
 
-  // Remonter la vue quand on ouvre un détail
   useEffect(() => {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // ⚠️ Ordre voulu (CRM → SAV → Reporting)
-  const miniCards: { key: Exclude<Key, null>; title: string; bullets: string[]; Icon: IconType }[] = [
-    { key: 'crm',       title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
-    { key: 'sav',       title: 'SAV',            bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
-    { key: 'reporting', title: 'Reporting & KPI', bullets: ['Chiffres à jour', 'Alertes simples'], Icon: BarChart2 },
+  // ⚠️ Ordre voulu : CRM → SAV → Reporting
+  const miniCards = [
+    { key: 'crm' as const,       title: 'CRM & Relances', bullets: ['Plus de ventes', 'Clients qui reviennent'], Icon: Repeat },
+    { key: 'sav' as const,       title: 'SAV',            bullets: ['Réponses rapides', 'Suivi des commandes'], Icon: Headphones },
+    { key: 'reporting' as const, title: 'Reporting & KPI', bullets: ['Vos chiffres en clair', 'Alertes automatiques'], Icon: BarChart2 },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
@@ -29,12 +27,10 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-10">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* Carte détaillée en haut */}
       {selected === 'crm'       && <div className="mb-8"><DetailCRM onClose={() => setSelected(null)} /></div>}
       {selected === 'sav'       && <div className="mb-8"><DetailSAV onClose={() => setSelected(null)} /></div>}
       {selected === 'reporting' && <div className="mb-8"><DetailReporting onClose={() => setSelected(null)} /></div>}
 
-      {/* En dessous : 3 mini cartes ou 2 restantes (dans l'ordre défini ci-dessus) */}
       <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {cardsToShow.map(({ key, title, bullets, Icon }) => (
           <Card key={key}>
@@ -61,7 +57,7 @@ export default function Solutions() {
   );
 }
 
-/* =================== DÉTAILS =================== */
+/* =================== DÉTAILS — COPIE QUI CONVERTIT =================== */
 
 function DetailCRM({ onClose }: { onClose: () => void }) {
   return (
@@ -74,36 +70,34 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
+          {/* one-liner qui vend */}
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> relance les paniers oubliés, envoie un message après l’achat (avis, recommandation),
-            fait revenir les anciens clients, passe à un humain si le client répond.
+            <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat, fait revenir les anciens clients, s’arrête dès que le client répond.
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
-              <h4 className="font-medium">Scénarios inclus</h4>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Paniers abandonnés (2–3 rappels)</li>
-                <li>Après achat : avis et recommandation</li>
-                <li>Réactivation des anciens clients</li>
-                <li>Mise à jour simple du fichier clients</li>
+                <li>Vous récupérez des ventes perdues.</li>
+                <li>Plus de clients reviennent acheter.</li>
+                <li>Messages simples, au bon moment.</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium">Se connecte à</h4>
+              <h4 className="font-medium">Ça marche avec</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Email / SMS : Klaviyo, Mailchimp, Brevo, Twilio</li>
-                <li>CRM : HubSpot, Pipedrive</li>
-                <li>Boutique / Paiement : Shopify, Stripe</li>
+                <li>Email, SMS, WhatsApp.</li>
+                <li>Shopify, Stripe.</li>
+                <li>Klaviyo, Mailchimp, HubSpot…</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium">Suivi</h4>
+              <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Ouvertures et clics</li>
-                <li>Ventes récupérées</li>
-                <li>Clients réactivés</li>
-                <li>Journal des envois et réponses</li>
+                <li>Ventes récupérées.</li>
+                <li>Ouvertures et clics.</li>
+                <li>Clients réactivés.</li>
               </ul>
             </div>
           </div>
@@ -125,36 +119,32 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
           </div>
 
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> répond aux questions courantes, vérifie le suivi des commandes,
-            envoie une réponse claire validée par vous, passe à un humain si c’est particulier.
+            <strong>Ce que l’agent fait :</strong> répond vite aux questions, suit les commandes, propose une réponse claire, passe à un humain si c’est particulier.
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
-              <h4 className="font-medium">Se connecte à</h4>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Outil de support : Gorgias, Zendesk, Freshdesk</li>
-                <li>Boutique : Shopify, WooCommerce</li>
-                <li>Messages : email, chat, WhatsApp</li>
+                <li>Moins d’attente pour vos clients.</li>
+                <li>Moins de charges pour l’équipe.</li>
+                <li>Vous gardez la main à tout moment.</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium">Mise en place (5 jours)</h4>
-              <ol className="list-decimal pl-5 space-y-1 text-muted">
-                <li>J1 : accès aux outils et règles simples</li>
-                <li>J2 : branchements support et boutique</li>
-                <li>J3 : réponses types et règles de sécurité</li>
-                <li>J4 : tests sur votre historique et seuils de transfert</li>
-                <li>J5 : mise en ligne progressive et suivi</li>
-              </ol>
+              <h4 className="font-medium">Ça marche avec</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Email, chat, WhatsApp.</li>
+                <li>Gorgias, Zendesk, Freshdesk.</li>
+                <li>Shopify, WooCommerce.</li>
+              </ul>
             </div>
             <div>
-              <h4 className="font-medium">Suivi</h4>
+              <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Temps de première réponse</li>
-                <li>Demandes résolues par l’IA (en %)</li>
-                <li>Satisfaction clients</li>
-                <li>Journal des réponses et bouton "reprendre la main"</li>
+                <li>Temps de réponse.</li>
+                <li>Demandes résolues par l’agent.</li>
+                <li>Satisfaction clients.</li>
               </ul>
             </div>
           </div>
@@ -176,33 +166,32 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
           </div>
 
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> regroupe vos chiffres (ventes, support, marketing), tient un tableau simple à jour,
-            explique en clair, alerte en cas de problème.
+            <strong>Ce que l’agent fait :</strong> met vos chiffres sur une page simple, envoie une alerte s’il voit un problème, répond à « Combien avons-nous vendu hier ? ».
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
-              <h4 className="font-medium">Sources</h4>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Boutique et paiement : Shopify, WooCommerce, Stripe</li>
-                <li>Marketing : Meta Ads, Google Ads, GA4</li>
-                <li>Fichiers et CRM (lecture) : Google Sheets, CRM</li>
+                <li>Vous savez où vous en êtes chaque jour.</li>
+                <li>Vous repérez les soucis tout de suite.</li>
+                <li>Moins de fichiers, plus de clarté.</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium">Livrables</h4>
+              <h4 className="font-medium">Ça marche avec</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Tableau de bord à jour</li>
-                <li>Alertes (seuils anormaux, ruptures)</li>
-                <li>Petit résumé hebdo</li>
+                <li>Shopify / WooCommerce.</li>
+                <li>Gorgias / Zendesk.</li>
+                <li>Google Sheets, Looker, Notion.</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium">Données & contrôle</h4>
+              <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Accès en lecture uniquement</li>
-                <li>Règles simples de confidentialité</li>
-                <li>Validation humaine pour les cas sensibles</li>
+                <li>Tableau à jour.</li>
+                <li>Alertes par email/Slack.</li>
+                <li>Petit résumé hebdo.</li>
               </ul>
             </div>
           </div>
