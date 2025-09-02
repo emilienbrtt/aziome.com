@@ -2,17 +2,11 @@
 
 import { useState } from 'react';
 
-function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
-function beTimestamp() {
+function two(n: number) { return n < 10 ? `0${n}` : `${n}`; }
+function subjectStamp() {
   const d = new Date();
-  const human = new Intl.DateTimeFormat('fr-BE', {
-    timeZone: 'Europe/Brussels',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).format(d);
-  const isoShort = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  return { human, isoShort };
+  const Y = d.getFullYear(), M = two(d.getMonth() + 1), D = two(d.getDate()), h = two(d.getHours()), m = two(d.getMinutes());
+  return `${Y}-${M}-${D} ${h}:${m}`; // sujet unique => 1 mail par demande
 }
 
 export default function ContactForm() {
@@ -31,45 +25,43 @@ export default function ContactForm() {
     // honeypot anti-bot
     if ((data.get('honey') as string)?.length) return;
 
-    // CHAMPS (tous OBLIGATOIRES maintenant)
+    // CHAMPS (tous obligatoires SAUF "company")
     const name = String(data.get('name') || '').trim();
     const email = String(data.get('email') || '').trim();
     const phone = String(data.get('phone') || '').trim();
-    const company = String(data.get('company') || '').trim();
+    const company = String(data.get('company') || '').trim(); // facultatif
     const message = String(data.get('message') || '').trim();
     const consent = data.get('consent') === 'on';
 
-    if (!name || !email || !phone || !company || !message || !consent) {
+    if (!name || !email || !phone || !message || !consent) {
       setSending(false);
-      setError('Merci de compléter tous les champs et d’accepter la politique de confidentialité.');
+      setError('Merci de compléter tous les champs requis et d’accepter la politique de confidentialité.');
       return;
     }
 
-    // Sujet UNIQUE => 1 email séparé par demande (évite le regroupement Gmail)
-    const { human, isoShort } = beTimestamp();
-    const subject = `Azium • Demande de démo — ${name} — ${isoShort}`;
+    // Sujet FR et unique → évite le regroupement des mails
+    const subject = `Aziome • Demande de démo — ${name} — ${subjectStamp()}`;
 
     try {
+      // payload FR propre (on n’envoie "Société" que si rempli)
+      const payload: Record<string, string> = {
+        _subject: subject,
+        _template: 'box',   // rendu propre
+        _captcha: 'false',
+        _replyto: email,    // "Répondre" dans Gmail → client
+
+        // champs affichés
+        'Nom': name,
+        'Email': email,
+        'Téléphone': phone,
+        'Message': message,
+      };
+      if (company) payload['Société'] = company;
+
       const res = await fetch('https://formsubmit.co/ajax/aziomeagency@gmail.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          // ---- Options FormSubmit (pour un rendu plus clean)
-          _subject: subject,   // sujet FR et unique
-          _template: 'box',    // template le plus propre (réduit le texte anglais du haut)
-          _captcha: 'false',
-          _replyto: email,     // "Répondre" en Gmail -> va vers le client
-
-          // ---- Champs 100% FR (seulement ce que tu veux voir)
-          'Nom': name,
-          'Email': email,
-          'Téléphone': phone,
-          'Société': company,
-          'Message': message,
-
-          // Meta utiles en bas de mail (FR)
-          'Reçu le (Europe/Brussels)': human,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -96,11 +88,42 @@ export default function ContactForm() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="glass p-6 rounded-2xl grid gap-4">
-          <input name="name"     placeholder="Nom *"      required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="email"    placeholder="Email *"    type="email" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="phone"    placeholder="Téléphone *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="company"  placeholder="Société *"   required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <textarea name="message" rows={5} placeholder="Votre message *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input
+            name="name"
+            placeholder="Nom *"
+            required
+            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
+          />
+
+          <input
+            name="email"
+            type="email"
+            placeholder="Email *"
+            required
+            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
+          />
+
+          <input
+            name="phone"
+            placeholder="Téléphone *"
+            required
+            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
+          />
+
+          {/* Société = NON obligatoire, pas d’astérisque, pas de (optionnel) */}
+          <input
+            name="company"
+            placeholder="Société"
+            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
+          />
+
+          <textarea
+            name="message"
+            rows={5}
+            placeholder="Votre message *"
+            required
+            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
+          />
 
           <label className="inline-flex items-center gap-2 text-sm">
             <input type="checkbox" name="consent" className="accent-[color:var(--gold-1)]" />
