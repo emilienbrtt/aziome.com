@@ -5,24 +5,15 @@ import { useState } from 'react';
 function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 function beTimestamp() {
   const d = new Date();
-  // Heure Belgique
-  const formatter = new Intl.DateTimeFormat('fr-BE', {
+  const human = new Intl.DateTimeFormat('fr-BE', {
     timeZone: 'Europe/Brussels',
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false,
-  });
-  const human = formatter.format(d); // ex: 02/09/2025, 14:07:33
-  // ISO lisible pour le sujet (YYYY-MM-DD HH:MM)
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const h = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  const isoShort = `${y}-${m}-${day} ${h}:${min}`;
+  }).format(d);
+  const isoShort = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return { human, isoShort };
 }
-function refId() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
 
 export default function ContactForm() {
   const [sent, setSent] = useState(false);
@@ -37,59 +28,47 @@ export default function ContactForm() {
     const form = e.currentTarget;
     const data = new FormData(form);
 
-    // anti-bot (honeypot caché)
+    // honeypot anti-bot
     if ((data.get('honey') as string)?.length) return;
 
-    // champs
+    // CHAMPS (tous OBLIGATOIRES maintenant)
     const name = String(data.get('name') || '').trim();
     const email = String(data.get('email') || '').trim();
     const phone = String(data.get('phone') || '').trim();
     const company = String(data.get('company') || '').trim();
-    const site = String(data.get('site') || '').trim();
     const message = String(data.get('message') || '').trim();
     const consent = data.get('consent') === 'on';
 
-    if (!name || !email || !message || !consent) {
+    if (!name || !email || !phone || !company || !message || !consent) {
       setSending(false);
-      setError('Merci de remplir les champs requis et d’accepter la politique de confidentialité.');
+      setError('Merci de compléter tous les champs et d’accepter la politique de confidentialité.');
       return;
     }
 
-    // Sujet UNIQUE → 1 email par demande (Gmail ne regroupe pas)
+    // Sujet UNIQUE => 1 email séparé par demande (évite le regroupement Gmail)
     const { human, isoShort } = beTimestamp();
-    const id = refId();
-    const page = typeof window !== 'undefined' ? window.location.href : '';
-    const subject = `Aziome • Demande de démo — ${name} — ${isoShort}`;
-
-    // Corps structuré (FR), template "table" propre
-    // On contrôle 100% les libellés (FR) + on ajoute un Résumé clair
-    const resume =
-      `Reçu le : ${human} (Europe/Brussels)\n` +
-      `Référence : ${id}\n` +
-      (page ? `Page source : ${page}\n` : '');
-
-    const details =
-      `• Société : ${company || '—'}\n` +
-      `• Site / Outil : ${site || '—'}\n` +
-      `• Téléphone : ${phone || '—'}`;
+    const subject = `Azium • Demande de démo — ${name} — ${isoShort}`;
 
     try {
       const res = await fetch('https://formsubmit.co/ajax/aziomeagency@gmail.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
-          // ---- Options FormSubmit ----
-          _subject: subject,   // sujet unique => emails séparés
-          _template: 'table',  // rendu clair en tableau (sans “Someone…”)
+          // ---- Options FormSubmit (pour un rendu plus clean)
+          _subject: subject,   // sujet FR et unique
+          _template: 'box',    // template le plus propre (réduit le texte anglais du haut)
           _captcha: 'false',
-          _replyto: email,     // "Répondre" dans Gmail -> adresse du client
+          _replyto: email,     // "Répondre" en Gmail -> va vers le client
 
-          // ---- Contenu 100% FR (ordre = lisibilité) ----
-          'Résumé': resume,
+          // ---- Champs 100% FR (seulement ce que tu veux voir)
           'Nom': name,
           'Email': email,
-          'Détails': details,
+          'Téléphone': phone,
+          'Société': company,
           'Message': message,
+
+          // Meta utiles en bas de mail (FR)
+          'Reçu le (Europe/Brussels)': human,
         }),
       });
 
@@ -117,11 +96,10 @@ export default function ContactForm() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="glass p-6 rounded-2xl grid gap-4">
-          <input name="name" placeholder="Nom *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="email" type="email" placeholder="Email *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="phone" placeholder="Téléphone (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="company" placeholder="Société (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
-          <input name="site" placeholder="Site / Outil principal (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="name"     placeholder="Nom *"      required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="email"    placeholder="Email *"    type="email" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="phone"    placeholder="Téléphone *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="company"  placeholder="Société *"   required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
           <textarea name="message" rows={5} placeholder="Votre message *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
 
           <label className="inline-flex items-center gap-2 text-sm">
@@ -134,7 +112,7 @@ export default function ContactForm() {
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          {/* Bouton doré dégradé (pro, lisible) */}
+          {/* Bouton doré dégradé */}
           <button
             type="submit"
             disabled={sending}
