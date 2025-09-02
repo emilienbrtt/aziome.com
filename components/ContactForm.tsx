@@ -2,6 +2,28 @@
 
 import { useState } from 'react';
 
+function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
+function beTimestamp() {
+  const d = new Date();
+  // Heure Belgique
+  const formatter = new Intl.DateTimeFormat('fr-BE', {
+    timeZone: 'Europe/Brussels',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const human = formatter.format(d); // ex: 02/09/2025, 14:07:33
+  // ISO lisible pour le sujet (YYYY-MM-DD HH:MM)
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const h = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const isoShort = `${y}-${m}-${day} ${h}:${min}`;
+  return { human, isoShort };
+}
+function refId() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
+
 export default function ContactForm() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -29,32 +51,44 @@ export default function ContactForm() {
 
     if (!name || !email || !message || !consent) {
       setSending(false);
-      setError('Remplis les champs requis et accepte la politique de confidentialité.');
+      setError('Merci de remplir les champs requis et d’accepter la politique de confidentialité.');
       return;
     }
 
-    // Sujet UNIQUE pour éviter que Gmail regroupe les emails
-    const when = new Date().toLocaleString('fr-BE', { hour12: false });
-    const subject = `Demande de démo — ${name} — ${when}`;
+    // Sujet UNIQUE → 1 email par demande (Gmail ne regroupe pas)
+    const { human, isoShort } = beTimestamp();
+    const id = refId();
+    const page = typeof window !== 'undefined' ? window.location.href : '';
+    const subject = `Aziome • Demande de démo — ${name} — ${isoShort}`;
+
+    // Corps structuré (FR), template "table" propre
+    // On contrôle 100% les libellés (FR) + on ajoute un Résumé clair
+    const resume =
+      `Reçu le : ${human} (Europe/Brussels)\n` +
+      `Référence : ${id}\n` +
+      (page ? `Page source : ${page}\n` : '');
+
+    const details =
+      `• Société : ${company || '—'}\n` +
+      `• Site / Outil : ${site || '—'}\n` +
+      `• Téléphone : ${phone || '—'}`;
 
     try {
-      // ENVOI AJAX → votre Gmail via FormSubmit (l’utilisateur reste sur le site)
       const res = await fetch('https://formsubmit.co/ajax/aziomeagency@gmail.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
-          // Métadonnées FormSubmit
-          _subject: subject,          // ← sujet unique (nom + date) = emails séparés
-          _template: 'table',         // tableau; les libellés viennent des clés ci-dessous
+          // ---- Options FormSubmit ----
+          _subject: subject,   // sujet unique => emails séparés
+          _template: 'table',  // rendu clair en tableau (sans “Someone…”)
           _captcha: 'false',
-          _replyto: email,            // le "Répondre" dans Gmail ira au client
+          _replyto: email,     // "Répondre" dans Gmail -> adresse du client
 
-          // ======= CHAMPS AFFICHÉS DANS L’EMAIL (100% FR) =======
+          // ---- Contenu 100% FR (ordre = lisibilité) ----
+          'Résumé': resume,
           'Nom': name,
           'Email': email,
-          'Téléphone': phone,
-          'Société': company,
-          'Site / Outil': site,
+          'Détails': details,
           'Message': message,
         }),
       });
@@ -83,46 +117,12 @@ export default function ContactForm() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="glass p-6 rounded-2xl grid gap-4">
-          <input
-            name="name"
-            placeholder="Nom *"
-            required
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
-
-          <input
-            name="email"
-            type="email"
-            placeholder="Email *"
-            required
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
-
-          <input
-            name="phone"
-            placeholder="Téléphone (optionnel)"
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
-
-          <input
-            name="company"
-            placeholder="Société (optionnel)"
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
-
-          <input
-            name="site"
-            placeholder="Site / Outil principal (optionnel)"
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
-
-          <textarea
-            name="message"
-            rows={5}
-            placeholder="Votre message *"
-            required
-            className="bg-transparent border border-white/10 rounded-lg px-4 py-3"
-          />
+          <input name="name" placeholder="Nom *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="email" type="email" placeholder="Email *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="phone" placeholder="Téléphone (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="company" placeholder="Société (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <input name="site" placeholder="Site / Outil principal (optionnel)" className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
+          <textarea name="message" rows={5} placeholder="Votre message *" required className="bg-transparent border border-white/10 rounded-lg px-4 py-3" />
 
           <label className="inline-flex items-center gap-2 text-sm">
             <input type="checkbox" name="consent" className="accent-[color:var(--gold-1)]" />
@@ -134,7 +134,7 @@ export default function ContactForm() {
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          {/* Bouton doré dégradé identique au CTA */}
+          {/* Bouton doré dégradé (pro, lisible) */}
           <button
             type="submit"
             disabled={sending}
@@ -146,10 +146,7 @@ export default function ContactForm() {
           </button>
 
           <p className="text-sm opacity-70">
-            Ou écrivez-nous :{' '}
-            <a href="mailto:aziomeagency@gmail.com" className="text-[color:var(--gold-1)]">
-              aziomeagency@gmail.com
-            </a>
+            Ou écrivez-nous : <a href="mailto:aziomeagency@gmail.com" className="text-[color:var(--gold-1)]">aziomeagency@gmail.com</a>
           </p>
         </form>
       )}
