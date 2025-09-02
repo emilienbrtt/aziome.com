@@ -1,3 +1,4 @@
+import ChatWidget from "../components/ChatWidget";
 import "./../styles/globals.css";
 import "./../styles/tokens.css";
 import { Sora, Inter } from "next/font/google";
