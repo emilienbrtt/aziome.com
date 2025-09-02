@@ -30,7 +30,7 @@ export default function Solutions() {
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
-      <p className="text-muted mb-10">Nous packons l’IA pour vos tâches à fort impact.</p>
+      <p className="text-muted mb-10">Une aide intelligente qui fait les tâches répétitives à votre place.</p>
 
       {/* --- Carte détaillée en GRAND au-dessus quand un agent est sélectionné --- */}
       {selected && (
