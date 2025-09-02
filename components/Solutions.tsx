@@ -100,11 +100,11 @@ function DetailCard({ which, onClose }: { which: Exclude<Key, null>; onClose: ()
               <div>
                 <h4 className="font-medium">Onboarding (5 jours)</h4>
                 <ol className="list-decimal pl-5 space-y-1 text-muted">
-                  <li>Accès outils, import FAQ/politiques</li>
-                  <li>Connexions & mapping des intents</li>
-                  <li>Réponses canoniques + garde-fous</li>
-                  <li>Tests sur historique, seuils d’escalade</li>
-                  <li>Go-live progressif + suivi</li>
+                  <li>Accès aux outils + règles simples</li>
+                  <li>Connexions support & boutique</li>
+                  <li>Réponses types + règles de sécurité</li>
+                  <li>Tests sur votre historique + seuils de transfert</li>
+                  <li>Mise en ligne + suivi</li>
                 </ol>
               </div>
               <div>
