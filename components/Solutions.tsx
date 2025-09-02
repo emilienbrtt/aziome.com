@@ -16,10 +16,10 @@ export default function Solutions() {
     }
   }, [selected]);
 
-  // Mini cartes (texte simplifié)
+  // ⚠️ Ordre souhaité : CRM → SAV → Reporting
   const miniCards: { key: Exclude<Key, null>; title: string; bullets: string[]; Icon: any }[] = [
-    { key: 'sav', title: 'SAV', bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
     { key: 'crm', title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
+    { key: 'sav', title: 'SAV', bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
     { key: 'reporting', title: 'Reporting & KPI', bullets: ['Chiffres à jour', 'Alertes simples'], Icon: BarChart2 },
   ];
 
@@ -37,7 +37,7 @@ export default function Solutions() {
         </div>
       )}
 
-      {/* En dessous : soit 3 mini cartes, soit les 2 restantes */}
+      {/* En dessous : soit 3 mini cartes, soit les 2 restantes (même ordre que miniCards) */}
       <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {others.map(({ key, title, bullets, Icon }) => (
           <Card key={key}>
