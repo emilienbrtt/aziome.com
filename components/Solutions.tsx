@@ -1,43 +1,42 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import Card from "./Card";
-import { Headphones, Repeat, BarChart2 } from "lucide-react";
+import Card from './Card';
+import { Headphones, Repeat, BarChart2 } from 'lucide-react';
 
 type Key = 'crm' | 'sav' | 'reporting' | null;
+type IconType = React.ComponentType<{ className?: string }>;
 
 export default function Solutions() {
   const [selected, setSelected] = useState<Key>(null);
 
   // Remonter la vue quand on ouvre un détail
   useEffect(() => {
-    if (selected) {
-      const el = document.getElementById('solutions');
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // Ordre voulu : CRM → SAV → Reporting (texte très simple)
-  const miniCards = [
-    { key: 'crm' as const, title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
-    { key: 'sav' as const, title: 'SAV',            bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
-    { key: 'reporting' as const, title: 'Reporting & KPI', bullets: ['Chiffres à jour', 'Alertes simples'], Icon: BarChart2 },
+  // ⚠️ Ordre voulu (CRM → SAV → Reporting)
+  const miniCards: { key: Exclude<Key, null>; title: string; bullets: string[]; Icon: IconType }[] = [
+    { key: 'crm',       title: 'CRM & Relances', bullets: ['Relances paniers', 'Clients qui reviennent'], Icon: Repeat },
+    { key: 'sav',       title: 'SAV',            bullets: ['Réponses aux clients', 'Suivi des commandes'], Icon: Headphones },
+    { key: 'reporting', title: 'Reporting & KPI', bullets: ['Chiffres à jour', 'Alertes simples'], Icon: BarChart2 },
   ];
 
-  const others = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
+  const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-10">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* Grande carte en haut si un agent est ouvert */}
-      {selected === 'crm' && <div className="mb-8"><DetailCRM onClose={() => setSelected(null)} /></div>}
-      {selected === 'sav' && <div className="mb-8"><DetailSAV onClose={() => setSelected(null)} /></div>}
+      {/* Carte détaillée en haut */}
+      {selected === 'crm'       && <div className="mb-8"><DetailCRM onClose={() => setSelected(null)} /></div>}
+      {selected === 'sav'       && <div className="mb-8"><DetailSAV onClose={() => setSelected(null)} /></div>}
       {selected === 'reporting' && <div className="mb-8"><DetailReporting onClose={() => setSelected(null)} /></div>}
 
-      {/* En dessous : soit 3 mini cartes, soit les 2 restantes (dans le bon ordre) */}
+      {/* En dessous : 3 mini cartes ou 2 restantes (dans l'ordre défini ci-dessus) */}
       <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {others.map(({ key, title, bullets, Icon }) => (
+        {cardsToShow.map(({ key, title, bullets, Icon }) => (
           <Card key={key}>
             <div className="flex items-start gap-3">
               <Icon className="text-[color:var(--gold-1)]" />
@@ -62,7 +61,8 @@ export default function Solutions() {
   );
 }
 
-/* -------------------- DÉTAIL CRM -------------------- */
+/* =================== DÉTAILS =================== */
+
 function DetailCRM({ onClose }: { onClose: () => void }) {
   return (
     <Card>
@@ -75,15 +75,15 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
           </div>
 
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> relance les paniers oubliés, envoie un message après l’achat
-            (avis, recommandation), fait revenir les anciens clients, passe à un humain si le client répond.
+            <strong>Ce que l’agent fait :</strong> relance les paniers oubliés, envoie un message après l’achat (avis, recommandation),
+            fait revenir les anciens clients, passe à un humain si le client répond.
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Scénarios inclus</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Paniers abandonnés (2 à 3 rappels)</li>
+                <li>Paniers abandonnés (2–3 rappels)</li>
                 <li>Après achat : avis et recommandation</li>
                 <li>Réactivation des anciens clients</li>
                 <li>Mise à jour simple du fichier clients</li>
@@ -113,7 +113,6 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* -------------------- DÉTAIL SAV -------------------- */
 function DetailSAV({ onClose }: { onClose: () => void }) {
   return (
     <Card>
@@ -165,7 +164,6 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* -------------------- DÉTAIL REPORTING -------------------- */
 function DetailReporting({ onClose }: { onClose: () => void }) {
   return (
     <Card>
