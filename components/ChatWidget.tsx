@@ -28,30 +28,32 @@ export default function ChatWidget() {
     });
   }, [msgs, open, loading]);
 
-  async function send() {
+async function send() {
   if (!input.trim() || loading) return;
   const question = input.trim();
 
   setInput("");
-  setMsgs(m => [...m, { role: "user", content: question }]);
+  setMsgs((m) => [...m, { role: "user", content: question }]);
   setLoading(true);
 
   try {
-    const history = [...msgs, { role: "user", content: question }];
-
     const r = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({
+        messages: [...msgs, { role: "user", content: question }],
+      }),
     });
 
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-    const { reply } = await r.json();               // <-- OK
-    setMsgs(m => [...m, { role: "assistant", content: reply ?? "" }]);
+    // 👉 On extrait bien la propriété 'reply'
+    const { reply } = await r.json();
+
+    setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
   } catch (e) {
     console.error(e);
-    setMsgs(m => [
+    setMsgs((m) => [
       ...m,
       {
         role: "assistant",
