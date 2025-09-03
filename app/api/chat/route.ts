@@ -1,106 +1,88 @@
 // app/api/chat/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { openai } from "@/lib/openai";
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
-// Si tu as besoin du runtime Node:
-// export const runtime = "nodejs"; // (optionnel, selon ta config)
+export const runtime = "nodejs";        // pas Edge -> évite les timeouts courts
+export const dynamic = "force-dynamic"; // pour éviter le cache
+export const maxDuration = 60;          // Vercel: jusqu'à 60 s si besoin
 
-export async function POST(req: NextRequest) {
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function POST(req: Request) {
   try {
-    const { message } = await req.json<{ message?: string }>();
+    // ❌ pas de générique ici
+    const { message } = await req.json();
+
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message vide." }, { status: 400 });
     }
 
     const assistantId = process.env.AZIOME_ASSISTANT_ID;
-    if (!assistantId) {
+    if (!assistantId || !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "AZIOME_ASSISTANT_ID manquant (Vercel -> Environment Variables)." },
+        { error: "Variables OPENAI_API_KEY ou AZIOME_ASSISTANT_ID manquantes." },
         { status: 500 }
       );
     }
 
-    // 1) Récupérer ou créer un "thread" par visiteur (via cookie HTTP-only)
-    const jar = cookies();
-    let threadId = jar.get("aziome_thread")?.value;
+    // 1) Créer un thread
+    const thread = await client.beta.threads.create();
 
-    if (!threadId) {
-      const thread = await openai.beta.threads.create();
-      threadId = thread.id;
-      // Cookie 30 jours, httpOnly
-      jar.set("aziome_thread", threadId, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      });
-    }
-
-    // 2) Ajouter le message de l’utilisateur au thread
-    await openai.beta.threads.messages.create(threadId, {
+    // 2) Ajouter le message utilisateur
+    await client.beta.threads.messages.create(thread.id, {
       role: "user",
       content: message,
     });
 
-    // 3) Lancer le run et attendre la fin
-    const run = await openai.beta.threads.runs.createAndPoll(threadId, {
+    // 3) Lancer un run avec ton assistant
+    const run = await client.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
-      // Si tu veux surcharger le modèle ici : model: "gpt-5" (sinon celui de l'assistant)
-      // Si tes PDF sont attachés à l’assistant, rien à ajouter ici.
     });
 
-    // 4) Gérer les états (tool_outputs, requires_action, etc.)
-    if (run.status !== "completed") {
-      // Erreur/transitoire : on renvoie un message “propre”
-      return NextResponse.json(
-        {
-          reply:
-            "Désolé, je n'arrive pas à répondre pour le moment. Réessaye dans un instant.",
-          status: run.status,
-        },
-        { status: 200 }
-      );
+    // 4) Poll jusqu’à complétion (ou timeout)
+    let status = run.status;
+    let tries = 0;
+    while (status === "queued" || status === "in_progress") {
+      await new Promise((r) => setTimeout(r, 1200)); // 1.2 s
+      const updated = await client.beta.threads.runs.retrieve(thread.id, run.id);
+      status = updated.status;
+      if (++tries > 45) break; // ~54 s max
     }
 
-    // 5) Récupérer le dernier message ASSISTANT du thread
-    const list = await openai.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 10,
-    });
+    if (status !== "completed") {
+      // run cancelled / failed / expired…
+      return NextResponse.json({
+        reply:
+          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+      });
+    }
 
-    const assistantMsg = list.data.find(
-      (m) => m.role === "assistant" && m.content && m.content.length > 0
-    );
+    // 5) Récupérer le dernier message assistant
+    const list = await client.beta.threads.messages.list(thread.id, { limit: 5 });
+    const firstAssistant = list.data.find((m) => m.role === "assistant");
 
-    // Plusieurs formats possibles → on prend le texte si présent, sinon on concatène brut
-    let reply = "…";
-    if (assistantMsg?.content) {
-      const parts = assistantMsg.content
+    // Les contenus d'un message assistant sont un tableau (texte, pièces jointes, etc.)
+    let text = "";
+    if (firstAssistant?.content?.length) {
+      text = firstAssistant.content
         .map((c: any) => {
-          // Nouveau SDK: bloc "text" avec "value"
+          // c.type === "text" => c.text.value
           if (c.type === "text" && c.text?.value) return c.text.value;
-          // Ancien format: content[0].text?
-          if (c.type === "output_text" && c.text) return c.text;
-          // par sécurité
           return "";
         })
-        .filter(Boolean);
-
-      if (parts.length > 0) reply = parts.join("\n\n");
+        .filter(Boolean)
+        .join("\n")
+        .trim();
     }
 
-    return NextResponse.json({ reply }, { status: 200 });
-  } catch (err: any) {
-    console.error("[/api/chat] ERR:", err?.message || err);
-    // Message générique côté client
+    return NextResponse.json({ reply: text || "…" });
+  } catch (err) {
+    console.error("[/api/chat] error:", err);
     return NextResponse.json(
-      {
-        reply:
-          "Désolé, je n'arrive pas à répondre pour le moment. Réessaye dans un instant.",
-        error: err?.message ?? "unknown_error",
-      },
-      { status: 200 }
+      { error: "Erreur serveur." },
+      { status: 500 }
     );
   }
 }
