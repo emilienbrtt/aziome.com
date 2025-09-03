@@ -1,103 +1,90 @@
 // app/api/chat/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // ← évite les surprises avec Edge
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
-    const message: string = body?.message;
+    const { messages, threadId } = await req.json();
 
-    // Gardes-fous : on renvoie des erreurs CLAIRES côté client
-    if (!message || typeof message !== "string") {
+    if (!process.env.OPENAI_API_KEY || !process.env.AZIOME_ASSISTANT_ID) {
       return NextResponse.json(
-        { error: "Message vide ou invalide." },
-        { status: 400 }
-      );
-    }
-
-    const assistantId = process.env.AZIOME_ASSISTANT_ID;
-    if (!assistantId || !assistantId.startsWith("asst_")) {
-      return NextResponse.json(
-        { error: "AZIOME_ASSISTANT_ID manquant ou invalide." },
-        { status: 500 }
-      );
-    }
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY manquante." },
+        { reply: "Configuration serveur incomplète." },
         { status: 500 }
       );
     }
 
-    // 1) Créer le thread avec le message utilisateur
-    const thread = await openai.beta.threads.create({
-      messages: [{ role: "user", content: message }],
+    // On prend juste le dernier message utilisateur
+    const last = messages?.[messages.length - 1];
+    const userText = typeof last?.content === "string" ? last.content : "";
+
+    // 1) Créer ou réutiliser un thread
+    let tid = (threadId as string) || null;
+    if (!tid) {
+      const t = await client.beta.threads.create();
+      tid = t.id;
+    }
+
+    // 2) Ajouter le message utilisateur dans le thread
+    await client.beta.threads.messages.create(tid!, {
+      role: "user",
+      content: userText,
     });
 
-    // 2) Lancer un run de TON assistant
-    const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: assistantId,
+    // 3) Lancer le run de ton assistant
+    const run = await client.beta.threads.runs.create(tid!, {
+      assistant_id: process.env.AZIOME_ASSISTANT_ID!,
     });
 
-    // 3) Poll jusqu’à complétion (max ~16s)
-    let replyText = "";
-    for (let i = 0; i < 20; i++) {
-      const current = await openai.beta.threads.runs.retrieve(
-        thread.id,
-        run.id
-      );
-
-      if (current.status === "completed") {
-        // 4) Récupérer le dernier message assistant
-        const msgs = await openai.beta.threads.messages.list(thread.id, {
-          order: "desc",
-          limit: 5,
-        });
-
-        const assistantMsg = msgs.data.find((m) => m.role === "assistant");
-        if (assistantMsg) {
-          for (const part of assistantMsg.content) {
-            if (part.type === "text") {
-              replyText += part.text.value;
-            }
-          }
-        }
-        break;
-      }
-
-      if (
-        current.status === "failed" ||
-        current.status === "cancelled" ||
-        current.status === "expired"
-      ) {
-        return NextResponse.json(
-          { reply: "L’assistant a échoué à générer une réponse." },
-          { status: 200 }
-        );
-      }
-
-      // petite attente avant de re-checker
+    // 4) Attendre la fin du run (petit polling)
+    let status = run.status;
+    while (
+      status !== "completed" &&
+      status !== "requires_action" &&
+      status !== "failed" &&
+      status !== "cancelled" &&
+      status !== "expired"
+    ) {
       await new Promise((r) => setTimeout(r, 800));
+      const r2 = await client.beta.threads.runs.retrieve(tid!, run.id);
+      status = r2.status;
     }
 
-    // Sécurité : si rien récupéré, on renvoie quelque chose
-    if (!replyText) {
-      replyText =
-        "Je n’ai pas pu récupérer la réponse. Réessaie ou envoie-nous un email à aziomeagency@gmail.com.";
+    if (status !== "completed") {
+      return NextResponse.json(
+        {
+          reply:
+            "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+          threadId: tid,
+        },
+        { status: 200 }
+      );
     }
 
-    return NextResponse.json({ reply: replyText });
-  } catch (err: any) {
-    console.error("API /api/chat error:", err);
+    // 5) Récupérer le dernier message assistant de ce run
+    const list = await client.beta.threads.messages.list(tid!, { limit: 20 });
+    const fromThisRun =
+      list.data.find((m) => m.role === "assistant" && m.run_id === run.id) ??
+      list.data.find((m) => m.role === "assistant");
+
+    let reply = "";
+    if (fromThisRun) {
+      reply = fromThisRun.content
+        .map((c: any) => (c.type === "text" ? c.text.value : ""))
+        .join("\n")
+        .trim();
+    }
+
+    return NextResponse.json({ reply, threadId: tid });
+  } catch (e) {
+    console.error(e);
     return NextResponse.json(
-      { error: err?.message ?? "Erreur serveur." },
-      { status: 500 }
+      {
+        reply:
+          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+      },
+      { status: 200 }
     );
   }
 }
