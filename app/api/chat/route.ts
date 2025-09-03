@@ -1,86 +1,72 @@
 // app/api/chat/route.ts
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { message } = await req.json();
 
-    // On accepte soit { message }, soit l'ancien { messages: [...] } (on prend le dernier)
-    const message: string =
-      body?.message ??
-      (Array.isArray(body?.messages)
-        ? String(body.messages.at(-1)?.content ?? "")
-        : "");
-
-    const incomingThreadId: string | undefined = body?.threadId;
-
-    if (!message || !message.trim()) {
-      return NextResponse.json({ error: "EMPTY" }, { status: 400 });
+    if (!message || typeof message !== "string") {
+      return new Response(JSON.stringify({ reply: "Message vide." }), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
     }
 
+    // 1) Client + vars d'environnement
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const assistantId = process.env.AZIOME_ASSISTANT_ID;
-    if (!assistantId) {
-      return NextResponse.json(
-        { error: "AZIOME_ASSISTANT_ID missing" },
-        { status: 500 }
-      );
-    }
+    if (!assistantId) throw new Error("AZIOME_ASSISTANT_ID manquant");
 
-    // 1) Thread : on réutilise celui fourni par le front, sinon on en crée un
-    const threadId =
-      incomingThreadId ??
-      (await client.beta.threads.create({})).id;
-
-    // 2) On ajoute le message utilisateur dans le thread
-    await client.beta.threads.messages.create(threadId, {
+    // 2) Thread + message utilisateur
+    const thread = await openai.beta.threads.create();
+    await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: message,
     });
 
-    // 3) On lance le run et on attend la fin
-    const run = await client.beta.threads.runs.createAndPoll(threadId, {
+    // 3) Run l'assistant (avec tes fichiers/knowledge)
+    const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
-      // Si tu veux passer un "override" d'instructions ponctuel :
-      // instructions: "..." 
     });
 
-    if (run.status !== "completed") {
-      // Cas d'erreurs ou d'actions requises (tools). On simplifie :
-      return NextResponse.json(
-        { error: `RUN_${run.status}`, threadId },
-        { status: 500 }
-      );
+    // 4) Poll jusqu'à completion
+    let runStatus = run;
+    const started = Date.now();
+    while (runStatus.status !== "completed") {
+      if (["failed", "cancelled", "expired"].includes(runStatus.status)) {
+        throw new Error(`Run ${runStatus.status}`);
+      }
+      // timeout simple 45s
+      if (Date.now() - started > 45_000) {
+        throw new Error("Timeout");
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     }
 
-    // 4) On lit le dernier message de l’assistant
-    const messages = await client.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 1,
-    });
-
+    // 5) Récupérer la dernière réponse
+    const msgs = await openai.beta.threads.messages.list(thread.id, { limit: 1 });
+    const last = msgs.data[0];
     let reply = "";
-    const first = messages.data?.[0];
-    const content = first?.content?.[0];
 
-    if (content?.type === "text") {
-      reply = content.text?.value ?? "";
-    } else {
-      // Sécurité : si pas de text, on concatène tout ce qui est textuel
-      reply =
-        (first?.content || [])
-          .filter((c: any) => c.type === "text")
-          .map((c: any) => c.text?.value ?? "")
-          .join("\n") ?? "";
+    const firstPart = last?.content?.[0];
+    if (firstPart?.type === "text") {
+      reply = firstPart.text?.value ?? "";
     }
 
-    return NextResponse.json({ reply, threadId });
-  } catch (err: any) {
-    console.error("API /api/chat (assistants) error:", err?.message || err);
-    return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
+    return new Response(JSON.stringify({ reply }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    console.error(err);
+    // On renvoie quand même 200 avec un texte de secours
+    return new Response(
+      JSON.stringify({
+        reply:
+          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   }
 }
