@@ -2,50 +2,85 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // défini dans Vercel
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
-
-// Prompt système court (tu pourras l'étendre si tu veux)
-const SYSTEM_PROMPT = `
-Tu es "Aziome", l’assistant de l’agence d’agents IA d’Émilien & Gaspar.
-Style: réponses courtes (2–4 phrases), claires, humaines. Pas d'emojis sauf si l'utilisateur en met.
-Si la demande sort du périmètre (services Aziome), propose d'écrire à aziomeagency@gmail.com.
-`;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // On accepte soit { messages: [...] }, soit { message: "..." }
-    const history = Array.isArray(body?.messages) && body.messages.length
-      ? body.messages
-      : body?.message
-      ? [{ role: "user", content: String(body.message) }]
-      : [];
+    // On accepte soit { message }, soit l'ancien { messages: [...] } (on prend le dernier)
+    const message: string =
+      body?.message ??
+      (Array.isArray(body?.messages)
+        ? String(body.messages.at(-1)?.content ?? "")
+        : "");
 
-    const last = history[history.length - 1]?.content?.trim();
-    if (!last) {
+    const incomingThreadId: string | undefined = body?.threadId;
+
+    if (!message || !message.trim()) {
       return NextResponse.json({ error: "EMPTY" }, { status: 400 });
     }
 
-    // Appel OpenAI (modèle pas cher et fiable)
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...history.map((m: any) => ({
-          role: m.role === "assistant" ? "assistant" : "user",
-          content: String(m.content ?? ""),
-        })),
-      ],
+    const assistantId = process.env.AZIOME_ASSISTANT_ID;
+    if (!assistantId) {
+      return NextResponse.json(
+        { error: "AZIOME_ASSISTANT_ID missing" },
+        { status: 500 }
+      );
+    }
+
+    // 1) Thread : on réutilise celui fourni par le front, sinon on en crée un
+    const threadId =
+      incomingThreadId ??
+      (await client.beta.threads.create({})).id;
+
+    // 2) On ajoute le message utilisateur dans le thread
+    await client.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: message,
     });
 
-    const reply = completion.choices[0]?.message?.content?.trim() ?? "";
-    return NextResponse.json({ reply });
+    // 3) On lance le run et on attend la fin
+    const run = await client.beta.threads.runs.createAndPoll(threadId, {
+      assistant_id: assistantId,
+      // Si tu veux passer un "override" d'instructions ponctuel :
+      // instructions: "..." 
+    });
+
+    if (run.status !== "completed") {
+      // Cas d'erreurs ou d'actions requises (tools). On simplifie :
+      return NextResponse.json(
+        { error: `RUN_${run.status}`, threadId },
+        { status: 500 }
+      );
+    }
+
+    // 4) On lit le dernier message de l’assistant
+    const messages = await client.beta.threads.messages.list(threadId, {
+      order: "desc",
+      limit: 1,
+    });
+
+    let reply = "";
+    const first = messages.data?.[0];
+    const content = first?.content?.[0];
+
+    if (content?.type === "text") {
+      reply = content.text?.value ?? "";
+    } else {
+      // Sécurité : si pas de text, on concatène tout ce qui est textuel
+      reply =
+        (first?.content || [])
+          .filter((c: any) => c.type === "text")
+          .map((c: any) => c.text?.value ?? "")
+          .join("\n") ?? "";
+    }
+
+    return NextResponse.json({ reply, threadId });
   } catch (err: any) {
-    console.error("API /api/chat error:", err?.message || err);
+    console.error("API /api/chat (assistants) error:", err?.message || err);
     return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
   }
 }
