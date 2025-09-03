@@ -1,89 +1,62 @@
-// app/api/chat/route.ts
-import { NextRequest, NextResponse } from "next/server";
+// /app/api/chat/route.ts
 import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export const runtime = "nodejs"; // pour être sûr d'être en runtime Node et pas Edge
 
-export async function POST(req: NextRequest) {
+type Msg = { role: "user" | "assistant"; content: string };
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!, // Vercel > Environment Variables
+});
+
+export async function POST(req: Request) {
   try {
-    const { messages, threadId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const messages = (body?.messages ?? []) as Msg[];
 
-    if (!process.env.OPENAI_API_KEY || !process.env.AZIOME_ASSISTANT_ID) {
+    if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
-        { reply: "Configuration serveur incomplète." },
-        { status: 500 }
-      );
-    }
-
-    // On prend juste le dernier message utilisateur
-    const last = messages?.[messages.length - 1];
-    const userText = typeof last?.content === "string" ? last.content : "";
-
-    // 1) Créer ou réutiliser un thread
-    let tid = (threadId as string) || null;
-    if (!tid) {
-      const t = await client.beta.threads.create();
-      tid = t.id;
-    }
-
-    // 2) Ajouter le message utilisateur dans le thread
-    await client.beta.threads.messages.create(tid!, {
-      role: "user",
-      content: userText,
-    });
-
-    // 3) Lancer le run de ton assistant
-    const run = await client.beta.threads.runs.create(tid!, {
-      assistant_id: process.env.AZIOME_ASSISTANT_ID!,
-    });
-
-    // 4) Attendre la fin du run (petit polling)
-    let status = run.status;
-    while (
-      status !== "completed" &&
-      status !== "requires_action" &&
-      status !== "failed" &&
-      status !== "cancelled" &&
-      status !== "expired"
-    ) {
-      await new Promise((r) => setTimeout(r, 800));
-      const r2 = await client.beta.threads.runs.retrieve(tid!, run.id);
-      status = r2.status;
-    }
-
-    if (status !== "completed") {
-      return NextResponse.json(
-        {
-          reply:
-            "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
-          threadId: tid,
-        },
+        { reply: "Message vide." },
         { status: 200 }
       );
     }
 
-    // 5) Récupérer le dernier message assistant de ce run
-    const list = await client.beta.threads.messages.list(tid!, { limit: 20 });
-    const fromThisRun =
-      list.data.find((m) => m.role === "assistant" && m.run_id === run.id) ??
-      list.data.find((m) => m.role === "assistant");
+    // On transforme l'historique en texte pour l'assistant (qui garde ainsi le contexte)
+    const transcript = messages
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join("\n");
 
-    let reply = "";
-    if (fromThisRun) {
-      reply = fromThisRun.content
-        .map((c: any) => (c.type === "text" ? c.text.value : ""))
-        .join("\n")
-        .trim();
+    const assistantId = process.env.AZIOME_ASSISTANT_ID;
+
+    // 1) Chemin principal : utiliser TON assistant (fichiers + instructions)
+    if (assistantId) {
+      const r = await client.responses.create({
+        assistant_id: assistantId,
+        input: transcript, // tout l'historique, pas seulement le dernier message
+      });
+
+      const reply = (r as any).output_text ?? "";
+      return NextResponse.json({ reply }, { status: 200 });
     }
 
-    return NextResponse.json({ reply, threadId: tid });
-  } catch (e) {
-    console.error(e);
+    // 2) Fallback : modèle de chat standard (si pas d'assistant configuré)
+    const r = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages, // ici on peut passer le tableau tel quel
+    });
+
+    const reply = r.choices?.[0]?.message?.content ?? "";
+    return NextResponse.json({ reply }, { status: 200 });
+  } catch (err: any) {
+    // On renvoie l'erreur DANS la réponse (status 200) pour éviter le "Désolé…"
+    const msg =
+      err?.response?.data?.error?.message ||
+      err?.message ||
+      "Erreur côté serveur.";
+    console.error("API /api/chat error:", msg);
     return NextResponse.json(
-      {
-        reply:
-          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
-      },
+      { reply: `⚠️ Erreur côté serveur: ${msg}` },
       { status: 200 }
     );
   }
