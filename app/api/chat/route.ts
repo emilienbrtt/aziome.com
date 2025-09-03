@@ -1,72 +1,103 @@
 // app/api/chat/route.ts
 import OpenAI from "openai";
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs"; // ← évite les surprises avec Edge
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const body = await req.json().catch(() => ({} as any));
+    const message: string = body?.message;
 
+    // Gardes-fous : on renvoie des erreurs CLAIRES côté client
     if (!message || typeof message !== "string") {
-      return new Response(JSON.stringify({ reply: "Message vide." }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
+      return NextResponse.json(
+        { error: "Message vide ou invalide." },
+        { status: 400 }
+      );
     }
 
-    // 1) Client + vars d'environnement
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const assistantId = process.env.AZIOME_ASSISTANT_ID;
-    if (!assistantId) throw new Error("AZIOME_ASSISTANT_ID manquant");
+    if (!assistantId || !assistantId.startsWith("asst_")) {
+      return NextResponse.json(
+        { error: "AZIOME_ASSISTANT_ID manquant ou invalide." },
+        { status: 500 }
+      );
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "OPENAI_API_KEY manquante." },
+        { status: 500 }
+      );
+    }
 
-    // 2) Thread + message utilisateur
-    const thread = await openai.beta.threads.create();
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: message,
+    // 1) Créer le thread avec le message utilisateur
+    const thread = await openai.beta.threads.create({
+      messages: [{ role: "user", content: message }],
     });
 
-    // 3) Run l'assistant (avec tes fichiers/knowledge)
+    // 2) Lancer un run de TON assistant
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
     });
 
-    // 4) Poll jusqu'à completion
-    let runStatus = run;
-    const started = Date.now();
-    while (runStatus.status !== "completed") {
-      if (["failed", "cancelled", "expired"].includes(runStatus.status)) {
-        throw new Error(`Run ${runStatus.status}`);
+    // 3) Poll jusqu’à complétion (max ~16s)
+    let replyText = "";
+    for (let i = 0; i < 20; i++) {
+      const current = await openai.beta.threads.runs.retrieve(
+        thread.id,
+        run.id
+      );
+
+      if (current.status === "completed") {
+        // 4) Récupérer le dernier message assistant
+        const msgs = await openai.beta.threads.messages.list(thread.id, {
+          order: "desc",
+          limit: 5,
+        });
+
+        const assistantMsg = msgs.data.find((m) => m.role === "assistant");
+        if (assistantMsg) {
+          for (const part of assistantMsg.content) {
+            if (part.type === "text") {
+              replyText += part.text.value;
+            }
+          }
+        }
+        break;
       }
-      // timeout simple 45s
-      if (Date.now() - started > 45_000) {
-        throw new Error("Timeout");
+
+      if (
+        current.status === "failed" ||
+        current.status === "cancelled" ||
+        current.status === "expired"
+      ) {
+        return NextResponse.json(
+          { reply: "L’assistant a échoué à générer une réponse." },
+          { status: 200 }
+        );
       }
-      await new Promise((r) => setTimeout(r, 1000));
-      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+
+      // petite attente avant de re-checker
+      await new Promise((r) => setTimeout(r, 800));
     }
 
-    // 5) Récupérer la dernière réponse
-    const msgs = await openai.beta.threads.messages.list(thread.id, { limit: 1 });
-    const last = msgs.data[0];
-    let reply = "";
-
-    const firstPart = last?.content?.[0];
-    if (firstPart?.type === "text") {
-      reply = firstPart.text?.value ?? "";
+    // Sécurité : si rien récupéré, on renvoie quelque chose
+    if (!replyText) {
+      replyText =
+        "Je n’ai pas pu récupérer la réponse. Réessaie ou envoie-nous un email à aziomeagency@gmail.com.";
     }
 
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-  } catch (err) {
-    console.error(err);
-    // On renvoie quand même 200 avec un texte de secours
-    return new Response(
-      JSON.stringify({
-        reply:
-          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
+    return NextResponse.json({ reply: replyText });
+  } catch (err: any) {
+    console.error("API /api/chat error:", err);
+    return NextResponse.json(
+      { error: err?.message ?? "Erreur serveur." },
+      { status: 500 }
     );
   }
 }
