@@ -13,7 +13,7 @@ export default function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // on peut garder l’auto-hide du hint après 10s (pas d’animation)
+  // Auto-hide du hint après 10s (pas d’animation)
   useEffect(() => {
     if (!open && hintVisible) {
       const t = setTimeout(() => setHintVisible(false), 10000);
@@ -21,6 +21,7 @@ export default function ChatWidget() {
     }
   }, [open, hintVisible]);
 
+  // Scroll en bas quand nouveaux messages / ouverture / chargement
   useEffect(() => {
     listRef.current?.scrollTo({
       top: listRef.current.scrollHeight,
@@ -28,43 +29,42 @@ export default function ChatWidget() {
     });
   }, [msgs, open, loading]);
 
-async function send() {
-  if (!input.trim() || loading) return;
-  const question = input.trim();
+  async function send() {
+    if (!input.trim() || loading) return;
+    const question = input.trim();
 
-  setInput("");
-  setMsgs((m) => [...m, { role: "user", content: question }]);
-  setLoading(true);
+    setInput("");
+    setMsgs((m) => [...m, { role: "user", content: question }]);
+    setLoading(true);
 
-  try {
-    const r = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [...msgs, { role: "user", content: question }],
-      }),
-    });
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // 🔴 ICI la modif : on envoie un seul champ "message"
+        body: JSON.stringify({ message: question }),
+      });
 
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-    // 👉 On extrait bien la propriété 'reply'
-    const { reply } = await r.json();
+      // On récupère la propriété 'reply' renvoyée par la route
+      const { reply } = await r.json();
 
-    setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
-  } catch (e) {
-    console.error(e);
-    setMsgs((m) => [
-      ...m,
-      {
-        role: "assistant",
-        content:
-          "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
-      },
-    ]);
-  } finally {
-    setLoading(false);
+      setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
+    } catch (e) {
+      console.error(e);
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") send();
