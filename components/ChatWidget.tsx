@@ -7,23 +7,27 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
-  const [hintVisible, setHintVisible] = useState(true); // “Besoin d’aide ?”
+  const [hintVisible, setHintVisible] = useState(true);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // 🔸 NOUVEAU : on garde l'id de conversation (thread) côté navigateur
-  const [threadId, setThreadId] = useState<string | null>(null);
+  // Charger le threadId depuis le navigateur
   useEffect(() => {
-    // on relit l'id sauvegardé si l'utilisateur revient
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("aziome_thread");
-      if (saved) setThreadId(saved);
-    }
+    const saved = typeof window !== "undefined"
+      ? localStorage.getItem("aziome_thread_id")
+      : null;
+    if (saved) setThreadId(saved);
   }, []);
 
-  // Auto-hide du hint après 10s (pas d’animation)
+  // Sauvegarder dès qu’il change
+  useEffect(() => {
+    if (threadId) localStorage.setItem("aziome_thread_id", threadId);
+  }, [threadId]);
+
+  // Auto-hide du hint après 10s si la fenêtre est fermée
   useEffect(() => {
     if (!open && hintVisible) {
       const t = setTimeout(() => setHintVisible(false), 10000);
@@ -31,7 +35,7 @@ export default function ChatWidget() {
     }
   }, [open, hintVisible]);
 
-  // Scroll en bas quand nouveaux messages / ouverture / chargement
+  // Scroll au bas à chaque nouveau message
   useEffect(() => {
     listRef.current?.scrollTo({
       top: listRef.current.scrollHeight,
@@ -44,36 +48,33 @@ export default function ChatWidget() {
     const question = input.trim();
 
     setInput("");
-    setMsgs((m) => [...m, { role: "user", content: question }]);
+    setMsgs(m => [...m, { role: "user", content: question }]);
     setLoading(true);
 
     try {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 🔸 NOUVEAU : on envoie aussi le threadId (si on en a déjà un)
-        body: JSON.stringify({ message: question, threadId }),
+        body: JSON.stringify({
+          message: question,
+          threadId, // on envoie le thread courant (ou null)
+        }),
       });
 
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json() as { reply?: string; threadId?: string; error?: string };
 
-      // la route renvoie { reply, threadId: "..." }
-      const { reply, threadId: newThreadId } = await r.json();
+      if (data.threadId && !threadId) setThreadId(data.threadId);
 
-      // 🔸 NOUVEAU : si le serveur renvoie un nouvel id de conversation, on le garde
-      if (newThreadId && newThreadId !== threadId) {
-        setThreadId(newThreadId);
-        try {
-          if (typeof window !== "undefined") {
-            localStorage.setItem("aziome_thread", newThreadId);
-          }
-        } catch {}
-      }
+      const reply =
+        data.reply ??
+        data.error ??
+        "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.";
 
-      setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
+      setMsgs(m => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       console.error(e);
-      setMsgs((m) => [
+      setMsgs(m => [
         ...m,
         {
           role: "assistant",
@@ -100,7 +101,6 @@ export default function ChatWidget() {
       {/* --- Bulle + petit onglet quand la fenêtre est fermée --- */}
       {!open && (
         <>
-          {/* Onglet “Besoin d’aide ?” – fixe, pas d’animation */}
           {hintVisible && (
             <button
               onClick={openChat}
@@ -115,7 +115,6 @@ export default function ChatWidget() {
             </button>
           )}
 
-          {/* Bulle – couleur constante (couleur ‘hover’) */}
           <button
             aria-label="Ouvrir le chat"
             onClick={openChat}
@@ -146,7 +145,7 @@ export default function ChatWidget() {
             </h4>
             <button
               aria-label="Fermer le chat"
-              onClick={() => setOpen(false)} // la bulle reste visible
+              onClick={() => setOpen(false)}
               className="rounded-full p-1 text-[color:var(--gold-2,#f5c66a)]/80 hover:text-[color:var(--gold-1,#ffd37a)]"
             >
               <X className="h-4 w-4" />
@@ -192,7 +191,6 @@ export default function ChatWidget() {
                 focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50
               "
             />
-            {/* Bouton Envoyer – couleur fixe, un peu plus foncée */}
             <button
               onClick={send}
               disabled={loading}
