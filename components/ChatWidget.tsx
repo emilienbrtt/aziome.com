@@ -13,6 +13,16 @@ export default function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // 🔸 NOUVEAU : on garde l'id de conversation (thread) côté navigateur
+  const [threadId, setThreadId] = useState<string | null>(null);
+  useEffect(() => {
+    // on relit l'id sauvegardé si l'utilisateur revient
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("aziome_thread");
+      if (saved) setThreadId(saved);
+    }
+  }, []);
+
   // Auto-hide du hint après 10s (pas d’animation)
   useEffect(() => {
     if (!open && hintVisible) {
@@ -41,14 +51,24 @@ export default function ChatWidget() {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 🔴 ICI la modif : on envoie un seul champ "message"
-        body: JSON.stringify({ message: question }),
+        // 🔸 NOUVEAU : on envoie aussi le threadId (si on en a déjà un)
+        body: JSON.stringify({ message: question, threadId }),
       });
 
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-      // On récupère la propriété 'reply' renvoyée par la route
-      const { reply } = await r.json();
+      // la route renvoie { reply, threadId: "..." }
+      const { reply, threadId: newThreadId } = await r.json();
+
+      // 🔸 NOUVEAU : si le serveur renvoie un nouvel id de conversation, on le garde
+      if (newThreadId && newThreadId !== threadId) {
+        setThreadId(newThreadId);
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("aziome_thread", newThreadId);
+          }
+        } catch {}
+      }
 
       setMsgs((m) => [...m, { role: "assistant", content: reply ?? "" }]);
     } catch (e) {
