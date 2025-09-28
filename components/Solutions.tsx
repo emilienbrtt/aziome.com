@@ -13,11 +13,11 @@ export default function Solutions() {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // ⚠️ Ordre voulu : CRM → SAV → Reporting
+  // Ordre d’affichage voulu : CRM → SAV → Reporting
   const miniCards = [
-    { key: 'sav' as const,       title: 'Léa',            bullets: ['Automatise votre service après-vente (SAV)'], Icon: Headphones },
-    { key: 'crm' as const,       title: 'Max', bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'], Icon: Repeat },
-    { key: 'reporting' as const, title: 'Jules', bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: BarChart2 },
+    { key: 'crm' as const,       title: 'Max',   bullets: ['Assure le suivi client et envoie des rappels personnalisés.'], Icon: Repeat },
+    { key: 'sav' as const,       title: 'Léa',   bullets: ['Prend en charge votre service après-vente, simplement.'],      Icon: Headphones },
+    { key: 'reporting' as const, title: 'Jules', bullets: ['Regroupe vos chiffres clés et vous alerte si besoin.'],        Icon: BarChart2 },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
@@ -70,9 +70,10 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
-          {/* one-liner qui vend */}
+          {/* one-liner clair */}
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat, fait revenir les anciens clients, s’arrête dès que le client répond.
+            <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat,
+            relance au bon moment et s’arrête dès que le client répond.
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
@@ -81,7 +82,7 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
               <ul className="list-disc pl-5 space-y-1 text-muted">
                 <li>Vous récupérez des ventes perdues.</li>
                 <li>Plus de clients reviennent acheter.</li>
-                <li>Messages simples, au bon moment.</li>
+                <li>Messages clairs, au bon moment.</li>
               </ul>
             </div>
             <div>
@@ -96,7 +97,7 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
               <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
                 <li>Ventes récupérées.</li>
-                <li>Ouvertures et clics.</li>
+                <li>Taux d’ouverture et de réponse.</li>
                 <li>Clients réactivés.</li>
               </ul>
             </div>
@@ -114,12 +115,13 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
         <Headphones className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">SAV</h3>
+            <h3 className="text-2xl font-semibold">Service après-vente (SAV)</h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> répond vite aux questions, suit les commandes, propose une réponse claire, passe à un humain si c’est particulier.
+            <strong>Ce que l’agent fait :</strong> répond vite et clairement, suit les commandes
+            et transfère à un humain si besoin.
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
@@ -127,7 +129,7 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
                 <li>Moins d’attente pour vos clients.</li>
-                <li>Moins de charges pour l’équipe.</li>
+                <li>Moins de charge pour l’équipe.</li>
                 <li>Vous gardez la main à tout moment.</li>
               </ul>
             </div>
@@ -142,9 +144,9 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
             <div>
               <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
-                <li>Temps de réponse.</li>
+                <li>Temps de réponse moyen.</li>
                 <li>Demandes résolues par l’agent.</li>
-                <li>Satisfaction clients.</li>
+                <li>Satisfaction client.</li>
               </ul>
             </div>
           </div>
@@ -161,12 +163,13 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
         <BarChart2 className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">Reporting & KPI</h3>
+            <h3 className="text-2xl font-semibold">Reporting & Résultats</h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> met vos chiffres sur une page simple, envoie une alerte s’il voit un problème, répond à « Combien avons-nous vendu hier ? ».
+            <strong>Ce que l’agent fait :</strong> met vos chiffres sur une page simple,
+            envoie une alerte s’il détecte un problème et répond à « Combien avons-nous vendu hier ? ».
           </p>
 
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
@@ -190,8 +193,8 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
               <h4 className="font-medium">Ce que vous voyez</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
                 <li>Tableau à jour.</li>
-                <li>Alertes par email/Slack.</li>
-                <li>Petit résumé hebdo.</li>
+                <li>Alertes par email ou Slack.</li>
+                <li>Résumé hebdomadaire.</li>
               </ul>
             </div>
           </div>
