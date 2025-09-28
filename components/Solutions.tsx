@@ -13,13 +13,45 @@ export default function Solutions() {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // ⚠️ On conserve l’ordre initial et on ajoute Accueil + RH
+  // Mise en page 3 + 2 (desktop) avec positions contrôlées
+  // -> Row 1: Max | Léa | Jules
+  // -> Row 2:      Mia | Chris (centrées)
   const miniCards = [
-    { key: 'sav' as const,       title: 'Léa',   bullets: ['Automatise votre service après-vente (SAV)'], Icon: Headphones },
-    { key: 'crm' as const,       title: 'Max',   bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'], Icon: Repeat },
-    { key: 'reporting' as const, title: 'Jules', bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: BarChart2 },
-    { key: 'accueil' as const,   title: '— Accueil —', bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: MessageCircle },
-    { key: 'rh' as const,        title: '— RH —', bullets: ['Prend en charge les démarches RH et le support interne, sans paperasse.'], Icon: Users },
+    {
+      key: 'crm' as const,
+      title: 'Max',
+      bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'],
+      Icon: Repeat,
+      layout: 'lg:col-span-4',                 // row1 col1
+    },
+    {
+      key: 'sav' as const,
+      title: 'Léa',
+      bullets: ['Automatise votre service après-vente (SAV)'],
+      Icon: Headphones,
+      layout: 'lg:col-span-4',                 // row1 col2
+    },
+    {
+      key: 'reporting' as const,
+      title: 'Jules',
+      bullets: ['Regroupe vos chiffres clés et vous alerte si besoin.'],
+      Icon: BarChart2,
+      layout: 'lg:col-span-4',                 // row1 col3
+    },
+    {
+      key: 'accueil' as const,
+      title: 'Mia',
+      bullets: ['Premier contact de votre entreprise, elle accueille chaque demande et oriente vers la bonne personne.'],
+      Icon: MessageCircle,
+      layout: 'lg:col-span-4 lg:col-start-3', // row2 col2 (centrée)
+    },
+    {
+      key: 'rh' as const,
+      title: 'Chris',
+      bullets: ['Prend en charge les démarches RH et le support interne, sans paperasse.'],
+      Icon: Users,
+      layout: 'lg:col-span-4 lg:col-start-7', // row2 col3 (centrée)
+    },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
@@ -35,26 +67,33 @@ export default function Solutions() {
       {selected === 'accueil'   && <div className="mb-8"><DetailAccueil onClose={() => setSelected(null)} /></div>}
       {selected === 'rh'        && <div className="mb-8"><DetailRH onClose={() => setSelected(null)} /></div>}
 
-      <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {cardsToShow.map(({ key, title, bullets, Icon }) => (
-          <Card key={key}>
-            <div className="flex items-start gap-3">
-              <Icon className="text-[color:var(--gold-1)]" />
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold">{title}</h3>
-                <ul className="mt-2 text-sm text-muted list-disc pl-4 space-y-1">
-                  {bullets.map((b, i) => <li key={i}>{b}</li>)}
-                </ul>
-                <button
-                  onClick={() => setSelected(key)}
-                  aria-expanded={selected === key}
-                  className="text-sm mt-3 inline-block text-[color:var(--gold-1)]"
-                >
-                  Voir le détail →
-                </button>
+      {/* GRID — mobile: 1 / tablet: 2 / desktop: 12 (3+2 centrées) */}
+      <div className={`grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12`}>
+        {cardsToShow.map(({ key, title, bullets, Icon, layout }) => (
+          <div
+            key={key}
+            className={`${layout} group transition-[transform,box-shadow] duration-300
+                        hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]`}
+          >
+            <Card>
+              <div className="flex items-start gap-3">
+                <Icon className="text-[color:var(--gold-1)] drop-shadow" />
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold">{title}</h3>
+                  <ul className="mt-2 text-sm text-muted list-disc pl-4 space-y-1">
+                    {bullets.map((b, i) => <li key={i}>{b}</li>)}
+                  </ul>
+                  <button
+                    onClick={() => setSelected(key)}
+                    aria-expanded={selected === key}
+                    className="text-sm mt-3 inline-block text-[color:var(--gold-1)]"
+                  >
+                    Voir le détail →
+                  </button>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         ))}
       </div>
     </section>
@@ -221,7 +260,7 @@ function DetailAccueil({ onClose }: { onClose: () => void }) {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Accueil <span className="text-sm font-normal text-muted">· Premier contact & orientation</span>
+              Mia <span className="text-sm font-normal text-muted">· Premier contact & orientation</span>
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
@@ -271,7 +310,7 @@ function DetailRH({ onClose }: { onClose: () => void }) {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              RH <span className="text-sm font-normal text-muted">· Démarches RH & support interne</span>
+              Chris <span className="text-sm font-normal text-muted">· Démarches RH & support interne</span>
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
