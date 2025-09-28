@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Card from './Card';
-import { Headphones, Repeat, BarChart2 } from 'lucide-react';
+import { Headphones, Repeat, BarChart2, MessageCircle, Users } from 'lucide-react';
 
-type Key = 'crm' | 'sav' | 'reporting' | null;
+type Key = 'crm' | 'sav' | 'reporting' | 'accueil' | 'rh' | null;
 
 export default function Solutions() {
   const [selected, setSelected] = useState<Key>(null);
@@ -13,11 +13,13 @@ export default function Solutions() {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // Ordre voulu : CRM → SAV → Reporting
+  // ⚠️ On conserve l’ordre initial et on ajoute Accueil + RH
   const miniCards = [
-    { key: 'sav' as const,       title: 'Léa',  bullets: ['Automatise votre service après-vente (SAV)'], Icon: Headphones },
-    { key: 'crm' as const,       title: 'Max',  bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'], Icon: Repeat },
-    { key: 'reporting' as const, title: 'Jules',bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: BarChart2 },
+    { key: 'sav' as const,       title: 'Léa',   bullets: ['Automatise votre service après-vente (SAV)'], Icon: Headphones },
+    { key: 'crm' as const,       title: 'Max',   bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'], Icon: Repeat },
+    { key: 'reporting' as const, title: 'Jules', bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: BarChart2 },
+    { key: 'accueil' as const,   title: '— Accueil —', bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: MessageCircle },
+    { key: 'rh' as const,        title: '— RH —', bullets: ['Prend en charge les démarches RH et le support interne, sans paperasse.'], Icon: Users },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
@@ -30,6 +32,8 @@ export default function Solutions() {
       {selected === 'crm'       && <div className="mb-8"><DetailCRM onClose={() => setSelected(null)} /></div>}
       {selected === 'sav'       && <div className="mb-8"><DetailSAV onClose={() => setSelected(null)} /></div>}
       {selected === 'reporting' && <div className="mb-8"><DetailReporting onClose={() => setSelected(null)} /></div>}
+      {selected === 'accueil'   && <div className="mb-8"><DetailAccueil onClose={() => setSelected(null)} /></div>}
+      {selected === 'rh'        && <div className="mb-8"><DetailRH onClose={() => setSelected(null)} /></div>}
 
       <div className={`grid gap-6 ${selected ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {cardsToShow.map(({ key, title, bullets, Icon }) => (
@@ -200,6 +204,106 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
                 <li>Tableau à jour.</li>
                 <li>Alertes par email ou Slack.</li>
                 <li>Résumé hebdomadaire.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DetailAccueil({ onClose }: { onClose: () => void }) {
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <MessageCircle className="text-[color:var(--gold-1)]" />
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="text-2xl font-semibold">
+              Accueil <span className="text-sm font-normal text-muted">· Premier contact & orientation</span>
+            </h3>
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
+          </div>
+
+          <p className="mt-3 text-muted">
+            <strong>Ce que l’agent fait :</strong> accueille chaque demande, pose les bonnes questions
+            et oriente vers la bonne personne ou le bon service.
+          </p>
+
+          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Réponses immédiates, 24h/24.</li>
+                <li>Moins d’appels/emails perdus.</li>
+                <li>Parcours client plus fluide.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ça marche avec</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Chat du site, formulaire, email.</li>
+                <li>WhatsApp, Facebook/Instagram.</li>
+                <li>Transcriptions d’appels, Slack.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ce que vous voyez</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Demandes prises en charge.</li>
+                <li>Catégories & motifs récurrents.</li>
+                <li>Taux de transfert vers humain.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DetailRH({ onClose }: { onClose: () => void }) {
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <Users className="text-[color:var(--gold-1)]" />
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="text-2xl font-semibold">
+              RH <span className="text-sm font-normal text-muted">· Démarches RH & support interne</span>
+            </h3>
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
+          </div>
+
+          <p className="mt-3 text-muted">
+            <strong>Ce que l’agent fait :</strong> gère les demandes internes (attestations, absences, congés),
+            prépare les documents et répond aux questions courantes des équipes.
+          </p>
+
+          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Moins d’administratif pour les RH.</li>
+                <li>Réponses rapides pour les équipes.</li>
+                <li>Moins d’erreurs et de retards.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ça marche avec</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Google Workspace/Drive, Notion.</li>
+                <li>Slack ou Microsoft Teams.</li>
+                <li>Outils SIRH (placeholders).</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ce que vous voyez</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Demandes traitées.</li>
+                <li>Documents générés.</li>
+                <li>Délai moyen de réponse.</li>
               </ul>
             </div>
           </div>
