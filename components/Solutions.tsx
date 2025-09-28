@@ -13,11 +13,11 @@ export default function Solutions() {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // Ordre d’affichage voulu : CRM → SAV → Reporting
+  // Ordre voulu : CRM → SAV → Reporting
   const miniCards = [
-    { key: 'crm' as const,       title: 'Max',   bullets: ['Assure le suivi client et envoie des rappels personnalisés.'], Icon: Repeat },
-    { key: 'sav' as const,       title: 'Léa',   bullets: ['Prend en charge votre service après-vente, simplement.'],      Icon: Headphones },
-    { key: 'reporting' as const, title: 'Jules', bullets: ['Regroupe vos chiffres clés et vous alerte si besoin.'],        Icon: BarChart2 },
+    { key: 'sav' as const,       title: 'Léa',  bullets: ['Automatise votre service après-vente (SAV)'], Icon: Headphones },
+    { key: 'crm' as const,       title: 'Max',  bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'], Icon: Repeat },
+    { key: 'reporting' as const, title: 'Jules',bullets: ['Premier contact de votre entreprise, il accueille chaque demande et oriente vers la bonne personne.'], Icon: BarChart2 },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
@@ -57,7 +57,7 @@ export default function Solutions() {
   );
 }
 
-/* =================== DÉTAILS — COPIE QUI CONVERTIT =================== */
+/* =================== DÉTAILS =================== */
 
 function DetailCRM({ onClose }: { onClose: () => void }) {
   return (
@@ -66,11 +66,12 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
         <Repeat className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">CRM & Relances</h3>
+            <h3 className="text-2xl font-semibold">
+              Max <span className="text-sm font-normal text-muted">· CRM & Relances</span>
+            </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
-          {/* one-liner clair */}
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat,
             relance au bon moment et s’arrête dès que le client répond.
@@ -115,7 +116,9 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
         <Headphones className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">Service après-vente (SAV)</h3>
+            <h3 className="text-2xl font-semibold">
+              Léa <span className="text-sm font-normal text-muted">· Service après-vente (SAV)</span>
+            </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
@@ -163,7 +166,9 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
         <BarChart2 className="text-[color:var(--gold-1)]" />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-2xl font-semibold">Reporting & Résultats</h3>
+            <h3 className="text-2xl font-semibold">
+              Jules <span className="text-sm font-normal text-muted">· Reporting & Résultats</span>
+            </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
 
