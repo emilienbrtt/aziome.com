@@ -13,48 +13,53 @@ export default function Solutions() {
     if (selected) document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selected]);
 
-  // Mise en page 3 + 2 (desktop) avec positions contrôlées
-  // -> Row 1: Max | Léa | Jules
-  // -> Row 2:      Mia | Chris (centrées)
+  // Positions fixes en 12 colonnes pour conserver le layout 3 + 2
+  // Row 1: Max (1-4) | Léa (5-8) | Jules (9-12)
+  // Row 2: Mia (4-7) | Chris (8-11)  -> centrées
   const miniCards = [
     {
       key: 'crm' as const,
       title: 'Max',
       bullets: ['Assure le suivi de vos clients et leur envoie des rappels personnalisés pour ne rien oublier.'],
       Icon: Repeat,
-      layout: 'lg:col-span-4',                 // row1 col1
+      layout: 'lg:col-span-4 lg:col-start-1',
     },
     {
       key: 'sav' as const,
       title: 'Léa',
       bullets: ['Automatise votre service après-vente (SAV)'],
       Icon: Headphones,
-      layout: 'lg:col-span-4',                 // row1 col2
+      layout: 'lg:col-span-4 lg:col-start-5',
     },
     {
       key: 'reporting' as const,
       title: 'Jules',
       bullets: ['Regroupe vos chiffres clés et vous alerte si besoin.'],
       Icon: BarChart2,
-      layout: 'lg:col-span-4',                 // row1 col3
+      layout: 'lg:col-span-4 lg:col-start-9',
     },
     {
       key: 'accueil' as const,
       title: 'Mia',
       bullets: ['Premier contact de votre entreprise, elle accueille chaque demande et oriente vers la bonne personne.'],
       Icon: MessageCircle,
-      layout: 'lg:col-span-4 lg:col-start-3', // row2 col2 (centrée)
+      layout: 'lg:col-span-4 lg:col-start-4',
     },
     {
       key: 'rh' as const,
       title: 'Chris',
       bullets: ['Prend en charge les démarches RH et le support interne, sans paperasse.'],
       Icon: Users,
-      layout: 'lg:col-span-4 lg:col-start-7', // row2 col3 (centrée)
+      layout: 'lg:col-span-4 lg:col-start-8',
     },
   ];
 
-  const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
+  // On REND TOUJOURS 5 emplacements pour garder l’alignement.
+  // Quand une carte est ouverte, on met un "placeholder invisible" à sa place.
+  const cardsWithPlaceholder = miniCards.map((c) => ({
+    ...c,
+    isPlaceholder: selected === c.key,
+  }));
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
@@ -67,32 +72,42 @@ export default function Solutions() {
       {selected === 'accueil'   && <div className="mb-8"><DetailAccueil onClose={() => setSelected(null)} /></div>}
       {selected === 'rh'        && <div className="mb-8"><DetailRH onClose={() => setSelected(null)} /></div>}
 
-      {/* GRID — mobile: 1 / tablet: 2 / desktop: 12 (3+2 centrées) */}
-      <div className={`grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12`}>
-        {cardsToShow.map(({ key, title, bullets, Icon, layout }) => (
+      {/* GRID — mobile: 1 / tablet: 2 / desktop: 12 */}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12">
+        {cardsWithPlaceholder.map(({ key, title, bullets, Icon, layout, isPlaceholder }) => (
           <div
             key={key}
-            className={`${layout} group transition-[transform,box-shadow] duration-300
-                        hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]`}
+            className={`${layout} ${isPlaceholder ? '' :
+              'group transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]'
+            }`}
           >
-            <Card>
-              <div className="flex items-start gap-3">
-                <Icon className="text-[color:var(--gold-1)] drop-shadow" />
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{title}</h3>
-                  <ul className="mt-2 text-sm text-muted list-disc pl-4 space-y-1">
-                    {bullets.map((b, i) => <li key={i}>{b}</li>)}
-                  </ul>
-                  <button
-                    onClick={() => setSelected(key)}
-                    aria-expanded={selected === key}
-                    className="text-sm mt-3 inline-block text-[color:var(--gold-1)]"
-                  >
-                    Voir le détail →
-                  </button>
-                </div>
+            {isPlaceholder ? (
+              // Espace réservé invisible pour conserver la géométrie
+              <div className="invisible h-full">
+                <Card>
+                  <div className="min-h-[190px]" />
+                </Card>
               </div>
-            </Card>
+            ) : (
+              <Card>
+                <div className="flex items-start gap-3 h-full">
+                  <Icon className="text-[color:var(--gold-1)] drop-shadow shrink-0" />
+                  <div className="flex-1 flex flex-col">
+                    <h3 className="text-xl font-semibold">{title}</h3>
+                    <ul className="mt-2 text-sm text-muted list-disc pl-4 space-y-1">
+                      {bullets.map((b, i) => <li key={i}>{b}</li>)}
+                    </ul>
+                    <button
+                      onClick={() => setSelected(key)}
+                      aria-expanded={selected === key}
+                      className="text-sm mt-3 inline-block text-[color:var(--gold-1)]"
+                    >
+                      Voir le détail →
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
         ))}
       </div>
@@ -100,7 +115,7 @@ export default function Solutions() {
   );
 }
 
-/* =================== DÉTAILS =================== */
+/* =================== DÉTAILS (inchangés) =================== */
 
 function DetailCRM({ onClose }: { onClose: () => void }) {
   return (
@@ -114,12 +129,10 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
-
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat,
             relance au bon moment et s’arrête dès que le client répond.
           </p>
-
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
@@ -164,12 +177,10 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
-
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> répond vite et clairement, suit les commandes
             et transfère à un humain si besoin.
           </p>
-
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
@@ -214,12 +225,10 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
-
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> met vos chiffres sur une page simple,
             envoie une alerte s’il détecte un problème et répond à « Combien avons-nous vendu hier ? ».
           </p>
-
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
@@ -264,12 +273,10 @@ function DetailAccueil({ onClose }: { onClose: () => void }) {
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
-
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> accueille chaque demande, pose les bonnes questions
             et oriente vers la bonne personne ou le bon service.
           </p>
-
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
@@ -314,12 +321,10 @@ function DetailRH({ onClose }: { onClose: () => void }) {
             </h3>
             <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
           </div>
-
           <p className="mt-3 text-muted">
             <strong>Ce que l’agent fait :</strong> gère les demandes internes (attestations, absences, congés),
             prépare les documents et répond aux questions courantes des équipes.
           </p>
-
           <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
