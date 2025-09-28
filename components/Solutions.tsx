@@ -15,9 +15,9 @@ export default function Solutions() {
 
   // ⚠️ Ordre voulu : CRM → SAV → Reporting
   const miniCards = [
-    { key: 'crm' as const,       title: 'CRM & Relances', bullets: ['Plus de ventes', 'Clients qui reviennent'], Icon: Repeat },
-    { key: 'sav' as const,       title: 'SAV',            bullets: ['Réponses rapides', 'Suivi des commandes'], Icon: Headphones },
-    { key: 'reporting' as const, title: 'Reporting & KPI', bullets: ['Vos chiffres en clair', 'Alertes automatiques'], Icon: BarChart2 },
+    { key: 'crm' as const,       title: 'Max', bullets: ['Relances clients'], Icon: Repeat },
+    { key: 'sav' as const,       title: 'Léa',            bullets: ['Service après-vente (SAV)'], Icon: Headphones },
+    { key: 'reporting' as const, title: 'Jules', bullets: ['Reporting & KPI'], Icon: BarChart2 },
   ];
 
   const cardsToShow = selected ? miniCards.filter(c => c.key !== selected) : miniCards;
