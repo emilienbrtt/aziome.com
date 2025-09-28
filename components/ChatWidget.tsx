@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MessageCircle, Send, X } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatWidget() {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [hintVisible, setHintVisible] = useState(true);
   const [input, setInput] = useState("");
@@ -14,11 +16,14 @@ export default function ChatWidget() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // ---- Mount guard pour éviter le mismatch SSR/CSR
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   // Charger le threadId depuis le navigateur
   useEffect(() => {
-    const saved = typeof window !== "undefined"
-      ? localStorage.getItem("aziome_thread_id")
-      : null;
+    const saved =
+      typeof window !== "undefined" ? localStorage.getItem("aziome_thread_id") : null;
     if (saved) setThreadId(saved);
   }, []);
 
@@ -48,21 +53,22 @@ export default function ChatWidget() {
     const question = input.trim();
 
     setInput("");
-    setMsgs(m => [...m, { role: "user", content: question }]);
+    setMsgs((m) => [...m, { role: "user", content: question }]);
     setLoading(true);
 
     try {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: question,
-          threadId, // on envoie le thread courant (ou null)
-        }),
+        body: JSON.stringify({ message: question, threadId }),
       });
 
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json() as { reply?: string; threadId?: string; error?: string };
+      const data = (await r.json()) as {
+        reply?: string;
+        threadId?: string;
+        error?: string;
+      };
 
       if (data.threadId && !threadId) setThreadId(data.threadId);
 
@@ -71,10 +77,10 @@ export default function ChatWidget() {
         data.error ??
         "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.";
 
-      setMsgs(m => [...m, { role: "assistant", content: reply }]);
+      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       console.error(e);
-      setMsgs(m => [
+      setMsgs((m) => [
         ...m,
         {
           role: "assistant",
@@ -96,20 +102,24 @@ export default function ChatWidget() {
     setHintVisible(false);
   }
 
-  return (
-    <>
-      {/* --- Bulle + petit onglet quand la fenêtre est fermée --- */}
+  // ---- UI rendue via PORTAL pour éviter tout clipping/stacking
+  const ui = (
+    <div
+      className="fixed z-[9999]"
+      style={{
+        right: "max(1rem, env(safe-area-inset-right))",
+        bottom: "max(1rem, env(safe-area-inset-bottom))",
+      }}
+    >
+      {/* --- Bulle + bouton quand fermé --- */}
       {!open && (
-        <>
+        <div className="flex items-end gap-3">
           {hintVisible && (
             <button
               onClick={openChat}
-              className="
-                fixed right-24 bottom-10 z-50
-                rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
-                bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
-                shadow-lg backdrop-blur
-              "
+              className="rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
+                         bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
+                         shadow-lg backdrop-blur hover:bg-black/60 transition"
             >
               Besoin d’aide ?
             </button>
@@ -118,26 +128,20 @@ export default function ChatWidget() {
           <button
             aria-label="Ouvrir le chat"
             onClick={openChat}
-            className="
-              fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full
-              border border-[color:var(--gold-2,#f5c66a)]/30
-              bg-[color:var(--gold-1,#ffd37a)] text-black
-              shadow-lg
-            "
+            className="h-14 w-14 rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
+                       bg-[color:var(--gold-1,#ffd37a)] text-black shadow-[0_8px_30px_rgba(212,175,55,0.35)]
+                       hover:shadow-[0_0_48px_rgba(212,175,55,0.35)] transition"
           >
             <MessageCircle className="mx-auto h-6 w-6" />
           </button>
-        </>
+        </div>
       )}
 
       {/* --- Fenêtre du chat --- */}
       {open && (
         <div
-          className="
-            fixed right-6 bottom-6 z-50 w-[360px] max-w-[92vw]
-            rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
-            bg-black/80 backdrop-blur p-4 shadow-2xl
-          "
+          className="w-[360px] max-w-[92vw] rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
+                     bg-black/80 backdrop-blur p-4 shadow-2xl"
         >
           <div className="mb-3 flex items-center justify-between">
             <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">
@@ -185,20 +189,16 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
               placeholder="Pose ta question…"
-              className="
-                flex-1 rounded-xl border border-neutral-800 bg-neutral-950
-                px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500
-                focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50
-              "
+              className="flex-1 rounded-xl border border-neutral-800 bg-neutral-950
+                         px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500
+                         focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50"
             />
             <button
               onClick={send}
               disabled={loading}
-              className="
-                inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
-                text-black border border-[color:var(--gold-2,#f5c66a)]/30
-                bg-[#e6b34f] disabled:opacity-50
-              "
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
+                         text-black border border-[color:var(--gold-2,#f5c66a)]/30
+                         bg-[#e6b34f] disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
               Envoyer
@@ -206,6 +206,9 @@ export default function ChatWidget() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
+
+  // ⬇️ Rend le widget au niveau du <body> → plus de disparition / clipping
+  return createPortal(ui, document.body);
 }
