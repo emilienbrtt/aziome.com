@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+// Import en namespace pour éviter l'erreur de typings sur createPortal
+import * as ReactDOM from "react-dom";
 import { MessageCircle, Send, X } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -16,7 +17,7 @@ export default function ChatWidget() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // ---- Mount guard pour éviter le mismatch SSR/CSR
+  // Évite le mismatch SSR/CSR, et permet d'utiliser document.body
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
@@ -42,10 +43,7 @@ export default function ChatWidget() {
 
   // Scroll au bas à chaque nouveau message
   useEffect(() => {
-    listRef.current?.scrollTo({
-      top: listRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, open, loading]);
 
   async function send() {
@@ -64,11 +62,7 @@ export default function ChatWidget() {
       });
 
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = (await r.json()) as {
-        reply?: string;
-        threadId?: string;
-        error?: string;
-      };
+      const data = (await r.json()) as { reply?: string; threadId?: string; error?: string };
 
       if (data.threadId && !threadId) setThreadId(data.threadId);
 
@@ -102,7 +96,7 @@ export default function ChatWidget() {
     setHintVisible(false);
   }
 
-  // ---- UI rendue via PORTAL pour éviter tout clipping/stacking
+  // ----- UI (identique à la tienne), ancrée via portal pour rester toujours visible
   const ui = (
     <div
       className="fixed z-[9999]"
@@ -111,7 +105,7 @@ export default function ChatWidget() {
         bottom: "max(1rem, env(safe-area-inset-bottom))",
       }}
     >
-      {/* --- Bulle + bouton quand fermé --- */}
+      {/* Fermé : bulle + bouton rond */}
       {!open && (
         <div className="flex items-end gap-3">
           {hintVisible && (
@@ -124,7 +118,6 @@ export default function ChatWidget() {
               Besoin d’aide ?
             </button>
           )}
-
           <button
             aria-label="Ouvrir le chat"
             onClick={openChat}
@@ -137,7 +130,7 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* --- Fenêtre du chat --- */}
+      {/* Ouvert : fenêtre */}
       {open && (
         <div
           className="w-[360px] max-w-[92vw] rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
@@ -162,7 +155,6 @@ export default function ChatWidget() {
                 Pose-moi une question sur vos besoins (SAV, CRM, Reporting…).
               </p>
             )}
-
             {msgs.map((m, i) => (
               <div
                 key={i}
@@ -175,7 +167,6 @@ export default function ChatWidget() {
                 {m.content}
               </div>
             ))}
-
             {loading && (
               <div className="max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm">
                 …
@@ -209,6 +200,6 @@ export default function ChatWidget() {
     </div>
   );
 
-  // ⬇️ Rend le widget au niveau du <body> → plus de disparition / clipping
-  return createPortal(ui, document.body);
+  // Utilise le portal sans dépendre des typings de react-dom
+  return (ReactDOM as any).createPortal(ui, document.body);
 }
