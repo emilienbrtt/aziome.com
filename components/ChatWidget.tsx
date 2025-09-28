@@ -1,25 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-// Import en namespace pour éviter l'erreur de typings sur createPortal
-import * as ReactDOM from "react-dom";
 import { MessageCircle, Send, X } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatWidget() {
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  // ⬇️ Toujours visible tant que la fenêtre est fermée
   const [hintVisible, setHintVisible] = useState(true);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-
-  // Évite le mismatch SSR/CSR, et permet d'utiliser document.body
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
 
   // Charger le threadId depuis le navigateur
   useEffect(() => {
@@ -33,17 +27,20 @@ export default function ChatWidget() {
     if (threadId) localStorage.setItem("aziome_thread_id", threadId);
   }, [threadId]);
 
-  // Auto-hide du hint après 10s si la fenêtre est fermée
-  useEffect(() => {
-    if (!open && hintVisible) {
-      const t = setTimeout(() => setHintVisible(false), 10000);
-      return () => clearTimeout(t);
-    }
-  }, [open, hintVisible]);
+  // ⛔️ SUPPRIMÉ : auto-hide du hint après 10s (il doit rester visible)
+  // useEffect(() => {
+  //   if (!open && hintVisible) {
+  //     const t = setTimeout(() => setHintVisible(false), 10000);
+  //     return () => clearTimeout(t);
+  //   }
+  // }, [open, hintVisible]);
 
   // Scroll au bas à chaque nouveau message
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [msgs, open, loading]);
 
   async function send() {
@@ -58,7 +55,10 @@ export default function ChatWidget() {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: question, threadId }),
+        body: JSON.stringify({
+          message: question,
+          threadId, // on envoie le thread courant (ou null)
+        }),
       });
 
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -93,48 +93,67 @@ export default function ChatWidget() {
 
   function openChat() {
     setOpen(true);
+    // On peut masquer l’étiquette quand on ouvre la fenêtre…
     setHintVisible(false);
   }
 
-  // ----- UI (identique à la tienne), ancrée via portal pour rester toujours visible
-  const ui = (
-    <div
-      className="fixed z-[9999]"
-      style={{
-        right: "max(1rem, env(safe-area-inset-right))",
-        bottom: "max(1rem, env(safe-area-inset-bottom))",
-      }}
-    >
-      {/* Fermé : bulle + bouton rond */}
+  return (
+    <>
+      {/* --- Bulle + petit onglet quand la fenêtre est fermée --- */}
       {!open && (
-        <div className="flex items-end gap-3">
+        <>
           {hintVisible && (
             <button
               onClick={openChat}
-              className="rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
-                         bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
-                         shadow-lg backdrop-blur hover:bg-black/60 transition"
+              className="
+                fixed right-24 bottom-10 z-[2147483647]    /* ⬅️ z-index max */
+                rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
+                bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
+                shadow-lg backdrop-blur hover:bg-black/60 transition
+              "
+              style={{
+                right: "max(6rem, env(safe-area-inset-right))", // safe-area iOS
+                bottom: "max(2.5rem, env(safe-area-inset-bottom))",
+              }}
             >
               Besoin d’aide ?
             </button>
           )}
+
           <button
             aria-label="Ouvrir le chat"
             onClick={openChat}
-            className="h-14 w-14 rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
-                       bg-[color:var(--gold-1,#ffd37a)] text-black shadow-[0_8px_30px_rgba(212,175,55,0.35)]
-                       hover:shadow-[0_0_48px_rgba(212,175,55,0.35)] transition"
+            className="
+              fixed right-6 bottom-6 z-[2147483647]       /* ⬅️ z-index max */
+              h-14 w-14 rounded-full
+              border border-[color:var(--gold-2,#f5c66a)]/30
+              bg-[color:var(--gold-1,#ffd37a)] text-black
+              shadow-[0_8px_30px_rgba(212,175,55,0.35)]
+              hover:shadow-[0_0_48px_rgba(212,175,55,0.35)] transition
+            "
+            style={{
+              right: "max(1.5rem, env(safe-area-inset-right))",
+              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+            }}
           >
             <MessageCircle className="mx-auto h-6 w-6" />
           </button>
-        </div>
+        </>
       )}
 
-      {/* Ouvert : fenêtre */}
+      {/* --- Fenêtre du chat --- */}
       {open && (
         <div
-          className="w-[360px] max-w-[92vw] rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
-                     bg-black/80 backdrop-blur p-4 shadow-2xl"
+          className="
+            fixed right-6 bottom-6 z-[2147483647]        /* ⬅️ z-index max */
+            w-[360px] max-w-[92vw]
+            rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
+            bg-black/80 backdrop-blur p-4 shadow-2xl
+          "
+          style={{
+            right: "max(1.5rem, env(safe-area-inset-right))",
+            bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+          }}
         >
           <div className="mb-3 flex items-center justify-between">
             <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">
@@ -155,6 +174,7 @@ export default function ChatWidget() {
                 Pose-moi une question sur vos besoins (SAV, CRM, Reporting…).
               </p>
             )}
+
             {msgs.map((m, i) => (
               <div
                 key={i}
@@ -167,6 +187,7 @@ export default function ChatWidget() {
                 {m.content}
               </div>
             ))}
+
             {loading && (
               <div className="max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm">
                 …
@@ -180,16 +201,20 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
               placeholder="Pose ta question…"
-              className="flex-1 rounded-xl border border-neutral-800 bg-neutral-950
-                         px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500
-                         focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50"
+              className="
+                flex-1 rounded-xl border border-neutral-800 bg-neutral-950
+                px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500
+                focus:outline-none focus:ring-1 focus:ring-[color:var(--gold-2,#f5c66a)]/50
+              "
             />
             <button
               onClick={send}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
-                         text-black border border-[color:var(--gold-2,#f5c66a)]/30
-                         bg-[#e6b34f] disabled:opacity-50"
+              className="
+                inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium
+                text-black border border-[color:var(--gold-2,#f5c66a)]/30
+                bg-[#e6b34f] disabled:opacity-50
+              "
             >
               <Send className="h-4 w-4" />
               Envoyer
@@ -197,9 +222,6 @@ export default function ChatWidget() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
-
-  // Utilise le portal sans dépendre des typings de react-dom
-  return (ReactDOM as any).createPortal(ui, document.body);
 }
