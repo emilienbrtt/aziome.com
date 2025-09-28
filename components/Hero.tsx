@@ -21,7 +21,7 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.6 } }}
           className="mt-6 text-lg text-muted"
         >
-          Aziome déploie des agents IA qui automatisent vos tâches clés (SAV, CRM, Reporting) — simplement, de façon responsable et mesurable.
+          Aziome déploie des agents qui automatisent votre quotidien. Ils travaillent jour et nuit et suivent vos règles. Vous gardez le contrôle et vous gagnez du temps chaque jour.
         </motion.p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button href="#contact" variant="primary">Demander une démo</Button>
