@@ -5,6 +5,7 @@ import Card from './Card';
 import { Headphones, Repeat, BarChart2, MessageCircle, Users } from 'lucide-react';
 
 type Key = 'crm' | 'sav' | 'reporting' | 'accueil' | 'rh' | null;
+type CloseProps = { onClose: () => void };
 
 export default function Solutions() {
   const [selected, setSelected] = useState<Key>(null);
@@ -52,10 +53,10 @@ export default function Solutions() {
         {visibleCards.map(({ key, title, bullets, Icon, layout }) => (
           <div
             key={key}
-            className={`${layout} relative rounded-2xl transition-[transform,box-shadow,outline-color] duration-300
+            className={`${layout} relative rounded-2xl transition-[transform,box-shadow,ring-color] duration-300
                         hover:-translate-y-0.5
                         hover:shadow-[0_0_90px_rgba(212,175,55,0.35)]
-                        hover:outline hover:outline-2 hover:outline-[rgba(212,175,55,0.28)]`}
+                        hover:ring-2 hover:ring-[rgba(212,175,55,0.28)] ring-inset focus-visible:outline-none`}
           >
             <Card>
               <div className="flex items-start gap-3 h-full min-h-[120px] md:min-h-[130px]">
@@ -82,9 +83,9 @@ export default function Solutions() {
   );
 }
 
-/* =================== DÉTAILS (texte inchangé) =================== */
+/* =================== DÉTAILS =================== */
 
-function DetailCRM({ onClose }: { onClose: () => void }) {
+function DetailCRM({ onClose }: CloseProps) {
   return (
     <Card>
       <div className="flex items-start gap-3">
@@ -132,7 +133,7 @@ function DetailCRM({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DetailSAV({ onClose }: { onClose: () => void }) {
+function DetailSAV({ onClose }: CloseProps) {
   return (
     <Card>
       <div className="flex items-start gap-3">
@@ -180,7 +181,7 @@ function DetailSAV({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DetailReporting({ onClose }: { onClose: () => void }) {
+function DetailReporting({ onClose }: CloseProps) {
   return (
     <Card>
       <div className="flex items-start gap-3">
@@ -228,7 +229,7 @@ function DetailReporting({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DetailAccueil({ onClose }: { onClose: () => void }) {
+function DetailAccueil({ onClose }: CloseProps) {
   return (
     <Card>
       <div className="flex items-start gap-3">
@@ -276,7 +277,7 @@ function DetailAccueil({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DetailRH({ onClose }: { onClose: () => void }) {
+function DetailRH({ onClose }: CloseProps) {
   return (
     <Card>
       <div className="flex items-start gap-3">
