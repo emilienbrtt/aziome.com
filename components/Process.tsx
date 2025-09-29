@@ -2,9 +2,18 @@
 import { motion } from "framer-motion";
 
 const steps = [
-  { title: "Onboarding clair", desc: "FAQ métier, accès outils, périmètre & règles." },
-  { title: "Déploiement", desc: "Templates d’agents ajustés à vos cas d’usage." },
-  { title: "Pilotage & amélioration", desc: "Suivi, logs, ajustements, reporting." }
+  {
+    title: "Cadrage & branchement (≈45 min)",
+    desc: "Nous définissons l’objectif et les règles, puis connectons l’essentiel : e-mail, calendrier, boutique ou autre."
+  },
+  {
+    title: "Essais réels & réglages",
+    desc: "Vous voyez l’agent sur des cas concrets ; nous ajustons immédiatement jusqu’à votre validation."
+  },
+  {
+    title: "Mise en ligne & suivi",
+    desc: "Activation progressive, transfert vers un humain à tout moment. Mises à jour continues et modifications possibles quand vous le souhaitez."
+  }
 ];
 
 export default function Process() {
@@ -20,13 +29,13 @@ export default function Process() {
             transition={{ duration: 0.5, delay: i * 0.1 }}
             className="glass rounded-2xl p-6"
           >
-            <div className="text-sm text-muted mb-2">Étape {i+1}</div>
+            <div className="text-sm text-muted mb-2">Étape {i + 1}</div>
             <h3 className="text-xl font-semibold">{s.title}</h3>
             <p className="text-muted mt-2">{s.desc}</p>
           </motion.div>
         ))}
       </div>
-      <p className="text-sm text-muted mt-6">Aziome est pensé “Human‑in‑the‑Loop” : vous gardez la main.</p>
+      <p className="text-sm text-muted mt-6">Aziome est pensé “Human-in-the-Loop” : vous gardez la main.</p>
     </section>
   );
 }
