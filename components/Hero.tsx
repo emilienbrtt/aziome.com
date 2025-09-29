@@ -21,7 +21,7 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.6 } }}
           className="mt-6 text-lg text-muted"
         >
-          Aziome déploie des agents qui automatisent votre quotidien en vous faisant gagner du temps sur vos tâches répétitives. Ils sont disponibles 24/24h et 7/7j. 
+          Aziome déploie des agents qui automatisent certaines tâches de votre business. Ils sont disponibles 24h/24h, 7/7j sans jamais prendre de vancances. 
         </motion.p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button href="#contact" variant="primary">Demander une démo</Button>
