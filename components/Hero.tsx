@@ -23,25 +23,26 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.6 } }}
           className="mt-6 text-lg text-muted"
         >
-          Aziome déploie des agents qui automatisent certaines tâches de votre business. Ils sont disponibles 24h/24h, 7/7j et sans intérruption.
+          Aziome déploie des agents qui automatisent certaines tâches de votre business. Ils sont disponibles 24h/24h, 7/7j et sans interruption.
         </motion.p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          {/* CTA principal : inchangé */}
-          <Button href="#contact" variant="primary">
+          {/* CTA principal */}
+          <Button href="#contact" variant="primary" className="sm:min-w-[280px]">
             Demander une démo
           </Button>
 
-          {/* CTA secondaire : Voir nos agents -> scroll vers #solutions */}
+          {/* CTA secondaire : même largeur + scroll vers #solutions */}
           <Button
             variant="secondary"
+            className="sm:min-w-[280px]"
             onClick={() =>
               document
                 .getElementById("solutions")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" })
             }
           >
-            Voir nos agents
+            Découvrir nos agents IA
           </Button>
         </div>
 
