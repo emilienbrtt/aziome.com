@@ -7,17 +7,25 @@ import Image from 'next/image';
 type Key = 'crm' | 'sav' | 'reporting' | 'accueil' | 'rh' | null;
 type CloseProps = { onClose: () => void };
 
-/* === Avatar bitmoji par nom d’agent ===
-   Place les images dans /public/agents/ avec ces noms :
+/* === Avatar bitmoji ===
+   Place les images dans /public/agents/ :
    max.png, lea.png, jules.png, mia.png, chris.png
 */
-function Avatar({ name, size = 28 }: { name: string; size?: number }) {
+function Avatar({
+  name,
+  size = 36,            // <-- taille par défaut plus grande pour les mini-cartes
+  glow = false,         // <-- halo doré optionnel
+}: {
+  name: string;
+  size?: number;
+  glow?: boolean;
+}) {
   const map: Record<string, string> = {
-    'Max': '/agents/max.png',
+    Max: '/agents/max.png',
     'Léa': '/agents/lea.png',
-    'Jules': '/agents/jules.png',
-    'Mia': '/agents/mia.png',
-    'Chris': '/agents/chris.png',
+    Jules: '/agents/jules.png',
+    Mia: '/agents/mia.png',
+    Chris: '/agents/chris.png',
   };
   const src = map[name];
 
@@ -27,7 +35,12 @@ function Avatar({ name, size = 28 }: { name: string; size?: number }) {
       alt={name}
       width={size}
       height={size}
-      className="rounded-full object-cover ring-1 ring-white/10"
+      className={[
+        'rounded-full object-cover',
+        glow
+          ? 'ring-2 ring-[rgba(212,175,55,0.45)] shadow-[0_0_35px_rgba(212,175,55,0.28)]'
+          : 'ring-1 ring-white/10',
+      ].join(' ')}
       priority
     />
   );
@@ -44,7 +57,6 @@ export default function Solutions() {
     }
   }, [selected]);
 
-  // Données agents (titres = noms visibles)
   const allCards = [
     {
       key: 'crm' as const,
@@ -84,7 +96,7 @@ export default function Solutions() {
     },
   ];
 
-  // Quand un détail est ouvert → afficher les 4 restantes en 2×2 centrées
+  // Quand un détail est ouvert → les 4 restantes en 2×2 centrées
   const layoutWhenOpen = [
     'lg:col-span-4 lg:col-start-3',
     'lg:col-span-4 lg:col-start-7',
@@ -145,7 +157,8 @@ export default function Solutions() {
           >
             <Card>
               <div className="flex items-start gap-3 h-full min-h-[120px] md:min-h-[130px]">
-                <Avatar name={title} size={28} />
+                {/* Mini avatar plus grand (36px) */}
+                <Avatar name={title} size={36} />
                 <div className="flex-1 flex flex-col pb-0.5">
                   <h3 className="text-xl font-semibold">{title}</h3>
                   <ul className="mt-1.5 text-sm text-muted list-disc pl-4 space-y-0.5">
@@ -170,34 +183,28 @@ export default function Solutions() {
   );
 }
 
-/* =================== DÉTAILS =================== */
+/* =================== DÉTAILS (avatar XL + mise en page clean) =================== */
 
 function DetailCRM({ onClose }: CloseProps) {
   return (
     <Card>
-      <div className="flex items-start gap-3">
-        <Avatar name="Max" size={36} />
+      <div className="flex items-start gap-5">
+        {/* Avatar XL avec halo */}
+        <Avatar name="Max" size={80} glow />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Max{' '}
-              <span className="text-sm font-normal text-muted">
-                · CRM & Relances
-              </span>
+              Max <span className="text-sm font-normal text-muted">· CRM & Relances</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-sm opacity-80 hover:opacity-100 underline"
-            >
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">
               Fermer
             </button>
           </div>
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> récupère les paniers
-            abandonnés, envoie un message après l’achat, relance au bon moment
-            et s’arrête dès que le client répond.
+            <strong>Ce que l’agent fait :</strong> récupère les paniers abandonnés, envoie un message après l’achat,
+            relance au bon moment et s’arrête dès que le client répond.
           </p>
-          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+          <div className="mt-5 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
@@ -232,28 +239,21 @@ function DetailCRM({ onClose }: CloseProps) {
 function DetailSAV({ onClose }: CloseProps) {
   return (
     <Card>
-      <div className="flex items-start gap-3">
-        <Avatar name="Léa" size={36} />
+      <div className="flex items-start gap-5">
+        <Avatar name="Léa" size={80} glow />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Léa{' '}
-              <span className="text-sm font-normal text-muted">
-                · Service après-vente (SAV)
-              </span>
+              Léa <span className="text-sm font-normal text-muted">· Service après-vente (SAV)</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-sm opacity-80 hover:opacity-100 underline"
-            >
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">
               Fermer
             </button>
           </div>
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> répond vite et clairement,
-            suit les commandes et transfère à un humain si besoin.
+            <strong>Ce que l’agent fait :</strong> répond vite et clairement, suit les commandes et transfère à un humain si besoin.
           </p>
-          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+          <div className="mt-5 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
@@ -288,29 +288,22 @@ function DetailSAV({ onClose }: CloseProps) {
 function DetailReporting({ onClose }: CloseProps) {
   return (
     <Card>
-      <div className="flex items-start gap-3">
-        <Avatar name="Jules" size={36} />
+      <div className="flex items-start gap-5">
+        <Avatar name="Jules" size={80} glow />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Jules{' '}
-              <span className="text-sm font-normal text-muted">
-                · Reporting & Résultats
-              </span>
+              Jules <span className="text-sm font-normal text-muted">· Reporting & Résultats</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-sm opacity-80 hover:opacity-100 underline"
-            >
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">
               Fermer
             </button>
           </div>
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> met vos chiffres sur une
-            page simple, envoie une alerte s’il détecte un problème et répond à
-            « Combien avons-nous vendu hier ? ».
+            <strong>Ce que l’agent fait :</strong> met vos chiffres sur une page simple, envoie une alerte s’il détecte un
+            problème et répond à « Combien avons-nous vendu hier ? ».
           </p>
-          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+          <div className="mt-5 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
@@ -345,29 +338,22 @@ function DetailReporting({ onClose }: CloseProps) {
 function DetailAccueil({ onClose }: CloseProps) {
   return (
     <Card>
-      <div className="flex items-start gap-3">
-        <Avatar name="Mia" size={36} />
+      <div className="flex items-start gap-5">
+        <Avatar name="Mia" size={80} glow />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Mia{' '}
-              <span className="text-sm font-normal text-muted">
-                · Premier contact & orientation
-              </span>
+              Mia <span className="text-sm font-normal text-muted">· Premier contact & orientation</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-sm opacity-80 hover:opacity-100 underline"
-            >
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">
               Fermer
             </button>
           </div>
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> accueille chaque demande,
-            pose les bonnes questions et oriente vers la bonne personne ou le
-            bon service.
+            <strong>Ce que l’agent fait :</strong> accueille chaque demande, pose les bonnes questions et oriente vers la
+            bonne personne ou le bon service.
           </p>
-          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+          <div className="mt-5 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
@@ -402,29 +388,22 @@ function DetailAccueil({ onClose }: CloseProps) {
 function DetailRH({ onClose }: CloseProps) {
   return (
     <Card>
-      <div className="flex items-start gap-3">
-        <Avatar name="Chris" size={36} />
+      <div className="flex items-start gap-5">
+        <Avatar name="Chris" size={80} glow />
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold">
-              Chris{' '}
-              <span className="text-sm font-normal text-muted">
-                · Démarches RH & support interne
-              </span>
+              Chris <span className="text-sm font-normal text-muted">· Démarches RH & support interne</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-sm opacity-80 hover:opacity-100 underline"
-            >
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">
               Fermer
             </button>
           </div>
           <p className="mt-3 text-muted">
-            <strong>Ce que l’agent fait :</strong> gère les demandes internes
-            (attestations, absences, congés), prépare les documents et répond
-            aux questions courantes des équipes.
+            <strong>Ce que l’agent fait :</strong> gère les demandes internes (attestations, absences, congés), prépare les
+            documents et répond aux questions courantes des équipes.
           </p>
-          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+          <div className="mt-5 grid md:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-medium">Pourquoi c’est utile</h4>
               <ul className="list-disc pl-5 space-y-1 text-muted">
