@@ -3,14 +3,14 @@ import { motion } from "framer-motion";
 
 const steps = [
   {
-    title: "Cadrage & branchement (≈45 min)",
+    title: "Onboarding (≈45 min)",
     bullets: [
       "Définir l’objectif, les règles et les réponses clés, ensemble.",
       "Connecter l’essentiel : e-mail, calendrier, boutique ou autre."
     ]
   },
   {
-    title: "Essais réels & réglages",
+    title: "Essais & réglages",
     bullets: [
       "L’agent traite vos cas concrets en direct.",
       "Ajustements immédiats jusqu’à validation."
