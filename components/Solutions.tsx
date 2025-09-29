@@ -238,4 +238,88 @@ function DetailAccueil({ onClose }: { onClose: () => void }) {
             <h3 className="text-2xl font-semibold">
               Mia <span className="text-sm font-normal text-muted">· Premier contact & orientation</span>
             </h3>
-            <button onClick={onClose} classNa
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
+          </div>
+          <p className="mt-3 text-muted">
+            <strong>Ce que l’agent fait :</strong> accueille chaque demande, pose les bonnes questions
+            et oriente vers la bonne personne ou le bon service.
+          </p>
+          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Réponses immédiates, 24h/24.</li>
+                <li>Moins d’appels/emails perdus.</li>
+                <li>Parcours client plus fluide.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ça marche avec</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Chat du site, formulaire, email.</li>
+                <li>WhatsApp, Facebook/Instagram.</li>
+                <li>Transcriptions d’appels, Slack.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ce que vous voyez</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Demandes prises en charge.</li>
+                <li>Catégories & motifs récurrents.</li>
+                <li>Taux de transfert vers humain.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DetailRH({ onClose }: { onClose: () => void }) {
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <Users className="text-[color:var(--gold-1)]" />
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="text-2xl font-semibold">
+              Chris <span className="text-sm font-normal text-muted">· Démarches RH & support interne</span>
+            </h3>
+            <button onClick={onClose} className="text-sm opacity-80 hover:opacity-100 underline">Fermer</button>
+          </div>
+          <p className="mt-3 text-muted">
+            <strong>Ce que l’agent fait :</strong> gère les demandes internes (attestations, absences, congés),
+            prépare les documents et répond aux questions courantes des équipes.
+          </p>
+          <div className="mt-4 grid md:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h4 className="font-medium">Pourquoi c’est utile</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Moins d’administratif pour les RH.</li>
+                <li>Réponses rapides pour les équipes.</li>
+                <li>Moins d’erreurs et de retards.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ça marche avec</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Google Workspace/Drive, Notion.</li>
+                <li>Slack ou Microsoft Teams.</li>
+                <li>Outils SIRH (placeholders).</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium">Ce que vous voyez</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted">
+                <li>Demandes traitées.</li>
+                <li>Documents générés.</li>
+                <li>Délai moyen de réponse.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
