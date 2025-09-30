@@ -22,7 +22,7 @@ const plans = [
     name: "Croissance",
     price: "599€",
     period: "/mois",
-    best: false, // carte repère (décoy)
+    best: false,
     bullets: [
       "2 agents au choix : Mia / Léa / Max",
       "Slack ou CRM léger",
@@ -36,7 +36,7 @@ const plans = [
     name: "Performance",
     price: "749€",
     period: "/mois",
-    best: true, // badge “Le plus choisi”
+    best: true,
     bullets: [
       "3 agents inclus : Mia (Accueil) + Léa (SAV) + Jules (Reporting)",
       "Gmail / Calendar / Slack / Notion",
@@ -75,7 +75,7 @@ export default function Pricing() {
         {plans.map((p) => (
           <div
             key={p.name}
-            className="rounded-2xl transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_50px_rgba(212,175,55,0.22)]"
+            className="rounded-2xl transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_60px_rgba(212,175,55,0.24)]"
           >
             <Card className="h-full">
               <div className="flex flex-col h-full">
@@ -124,7 +124,7 @@ export default function Pricing() {
       </div>
 
       {/* Bandeau Entreprise pleine largeur */}
-      <div className="mt-8 rounded-2xl transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_50px_rgba(212,175,55,0.22)]">
+      <div className="mt-8 rounded-2xl transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_60px_rgba(212,175,55,0.24)]">
         <Card className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
