@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,185 +20,172 @@ const CARDS: CardDef[] = [
   { slug: 'chris', name: 'Chris', image: '/agents/chris.png', blurb: "Gère les demandes internes et la paperasse sans retard." },
 ];
 
+// util modulo positif
+const mod = (a: number, n: number) => ((a % n) + n) % n;
+
 export default function Solutions() {
-  // Piste scrollable
-  const trackRef = useRef<HTMLDivElement>(null);
-  // 1ère carte pour mesurer largeur + gap => “scroll par carte”
-  const firstCardRef = useRef<HTMLDivElement>(null);
-  const cardStepRef = useRef<number>(0); // largeur 1 carte + gap
-  const guardRef = useRef({ measuring: false });
+  const [current, setCurrent] = useState(0); // index de la carte au centre
+  const n = CARDS.length;
 
-  // Mesure: largeur d'une carte + gap (pour un pas propre)
-  useLayoutEffect(() => {
-    const calc = () => {
-      const track = trackRef.current;
-      const first = firstCardRef.current;
-      if (!track || !first) return;
-      const gap = parseFloat(getComputedStyle(track).gap || '0');
-      const w = first.getBoundingClientRect().width;
-      cardStepRef.current = w + gap;
-    };
-    calc();
-    const ro = new ResizeObserver(calc);
-    if (trackRef.current) ro.observe(trackRef.current);
-    if (firstCardRef.current) ro.observe(firstCardRef.current);
-    window.addEventListener('resize', calc);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', calc);
-    };
-  }, []);
+  // indices visibles (gauche, centre, droite)
+  const idxLeft   = mod(current - 1, n);
+  const idxCenter = current;
+  const idxRight  = mod(current + 1, n);
 
-  // Scroller d'une carte (boucle infinie)
-  const scrollOne = (dir: 'prev' | 'next') => {
-    const el = trackRef.current;
-    const step = cardStepRef.current || 300;
-    if (!el) return;
+  const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
+  const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-    // positions utiles
-    const max = el.scrollWidth - el.clientWidth;
-    const pos = el.scrollLeft;
-
-    if (dir === 'next') {
-      // si on est (quasi) au bout → wrap au début
-      if (pos + step >= max - 2) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: step, behavior: 'smooth' });
-      }
-    } else {
-      // si on est (quasi) au début → wrap à la fin
-      if (pos - step <= 2) {
-        el.scrollTo({ left: max, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: -step, behavior: 'smooth' });
-      }
-    }
+  // swipe mobile simple
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => (touchStartX.current = e.touches[0].clientX);
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    const threshold = 40; // px
+    if (dx < -threshold) goNext();
+    else if (dx > threshold) goPrev();
   };
 
-  // Sécurité: si le contenu change/resize pendant un scroll, on corrige la position “hors bords”
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
+  // petite map de styles selon le rôle
+  const roleClass = (role: 'left' | 'center' | 'right') => {
+    const base =
+      // ring fin gris partout + container qui laisse respirer le glow
+      'rounded-2xl ring-1 ring-white/12 bg-[#0b0b0b] transition ' +
+      'hover:ring-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)]';
 
-    const fixEdges = () => {
-      if (guardRef.current.measuring) return;
-      guardRef.current.measuring = true;
-      requestAnimationFrame(() => {
-        const step = cardStepRef.current || 300;
-        const max = el.scrollWidth - el.clientWidth;
-        const pos = el.scrollLeft;
-        // Tolérance d'un demi pas
-        const tol = step * 0.5;
+    // même timing sur tous les props animés
+    const anim = 'duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity,filter';
 
-        if (pos < 0 + tol) {
-          el.scrollLeft = 0;
-        } else if (pos > max - tol) {
-          el.scrollLeft = max;
-        }
-        guardRef.current.measuring = false;
-      });
-    };
+    if (role === 'center') {
+      return (
+        base + ' ' + anim +
+        ' scale-100 opacity-100 z-[2]'
+      );
+    }
+    if (role === 'left') {
+      return (
+        base + ' ' + anim +
+        ' scale-[0.88] opacity-70 -translate-x-2 md:-translate-x-3 lg:-translate-x-4 ' +
+        'backdrop-blur-0'
+      );
+    }
+    // right
+    return (
+      base + ' ' + anim +
+      ' scale-[0.88] opacity-70 translate-x-2 md:translate-x-3 lg:translate-x-4 ' +
+      'backdrop-blur-0'
+    );
+  };
 
-    el.addEventListener('scroll', fixEdges, { passive: true });
-    window.addEventListener('resize', fixEdges);
-    return () => {
-      el.removeEventListener('scroll', fixEdges);
-      window.removeEventListener('resize', fixEdges);
-    };
-  }, []);
+  // carte (générique) : image + dégradé + texte
+  const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
+    <div className={roleClass(role)}>
+      <div className="rounded-[inherit] overflow-hidden">
+        <div className="relative aspect-[4/5] w-full bg-black">
+          <Image
+            src={data.image}
+            alt={data.name}
+            fill
+            priority
+            sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
+            className={
+              // image contenue, posée au bas pour laisser la tête respirer
+              'object-contain object-bottom select-none transition duration-200'
+              + (role === 'center' ? '' : ' saturate-[.9]')
+            }
+          />
+          {/* dégradé profond qui rejoint le texte (≈58–60%) */}
+          <div
+            className="absolute inset-x-0 bottom-0 pointer-events-none
+                       bg-gradient-to-t from-black/92 via-black/60 to-transparent"
+            style={{ height: '60%' }}
+          />
+        </div>
+        <div className="p-5">
+          <h3 className="text-xl font-semibold">{data.name}</h3>
+          <p
+            className={
+              'mt-2 text-sm leading-relaxed text-muted ' +
+              (role === 'center' ? '' : ' line-clamp-1')
+            }
+          >
+            {data.blurb}
+          </p>
+          <Link
+            href={`/agents/${data.slug}`}
+            className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
+          >
+            Voir les détails →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ordre d’affichage : gauche — centre — droite
+  const visible: { data: CardDef; role: 'left' | 'center' | 'right' }[] = [
+    { data: CARDS[idxLeft], role: 'left' },
+    { data: CARDS[idxCenter], role: 'center' },
+    { data: CARDS[idxRight], role: 'right' },
+  ];
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* Conteneur élargi verticalement pour que l’ombre et la bordure ne soient JAMAIS coupées */}
-      <div className="relative py-6">
-
-        {/* Flèches – toujours actives (boucle), défilement par 1 carte */}
+      {/* WRAP global : padding vertical pour que le glow ne soit pas coupé */}
+      <div
+        className="relative py-8"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Flèches collées aux bords externes des cartes latérales */}
         <button
-          onClick={() => scrollOne('prev')}
+          onClick={goPrev}
           className="hidden sm:flex items-center justify-center
-                     absolute left-[-14px] lg:left-[-20px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
-                     hover:bg-white/10 backdrop-blur transition"
+                     absolute left-[-14px] lg:left-[-22px] top-1/2 -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/6
+                     hover:bg-white/12 backdrop-blur transition"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
 
         <button
-          onClick={() => scrollOne('next')}
+          onClick={goNext}
           className="hidden sm:flex items-center justify-center
-                     absolute right-[-14px] lg:right-[-20px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
-                     hover:bg-white/10 backdrop-blur transition"
+                     absolute right-[-14px] lg:right-[-22px] top-1/2 -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/6
+                     hover:bg-white/12 backdrop-blur transition"
           aria-label="Suivant"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Piste scrollable : overflow-y-visible + padding vertical => bordures haut/bas visibles + glow non coupé */}
+        {/* Rangée : 3 cartes visibles, overflow-y-visible pour laisser passer l’ombre */}
         <div
-          ref={trackRef}
           className="
-            flex gap-5 overflow-x-auto overflow-y-visible overscroll-x-contain scroll-smooth
-            [scrollbar-width:none] [-ms-overflow-style:none]
-            snap-x snap-mandatory px-1 py-2
+            flex items-stretch justify-center gap-5
+            overflow-visible
           "
-          style={{ scrollPaddingLeft: 4, scrollPaddingRight: 4 }}
         >
-          <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+          {/* largeur responsive : centre plus large, latérales un peu plus étroites */}
+          <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
+            <Card data={visible[0].data} role="left" />
+          </div>
+          <div className="w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]">
+            <Card data={visible[1].data} role="center" />
+          </div>
+          <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
+            <Card data={visible[2].data} role="right" />
+          </div>
+        </div>
 
-          {CARDS.map((c, idx) => (
-            <article
-              key={c.slug}
-              ref={idx === 0 ? firstCardRef : undefined}
-              className="snap-start shrink-0 w-[85%] sm:w-[60%] md:w-[48%] lg:w-[32%]"
-            >
-              {/* Conteneur EXTERNE : fine bordure 360° + glow large au survol */}
-              <div
-                className="
-                  rounded-2xl ring-1 ring-white/12 bg-[#0b0b0b]
-                  hover:ring-[rgba(212,175,55,0.50)]
-                  hover:shadow-[0_0_140px_rgba(212,175,55,0.20)]
-                  transition
-                "
-              >
-                {/* INTERNE : masque des coins, dégradé profond */}
-                <div className="rounded-[inherit] overflow-hidden">
-                  <div className="relative aspect-[4/5] w-full bg-black">
-                    <Image
-                      src={c.image}
-                      alt={c.name}
-                      fill
-                      sizes="(max-width: 768px) 85vw, (max-width: 1024px) 48vw, 32vw"
-                      className="object-contain object-bottom select-none"
-                      priority
-                    />
-                    {/* Dégradé jusqu’au texte (≈60%) */}
-                    <div
-                      className="absolute inset-x-0 bottom-0 pointer-events-none
-                                 bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-                      style={{ height: '60%' }}
-                    />
-                  </div>
-
-                  <div className="p-5">
-                    <h3 className="text-xl font-semibold">{c.name}</h3>
-                    <p className="mt-2 text-sm text-muted leading-relaxed">{c.blurb}</p>
-                    <Link
-                      href={`/agents/${c.slug}`}
-                      className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
-                    >
-                      Voir les détails →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
+        {/* Mobile < md : on garde la même structure, mais les largeurs font que seule la centrale occupe le focus */}
+        <div className="mt-3 md:hidden text-center text-xs text-muted">
+          Balayez pour changer d’agent
         </div>
       </div>
     </section>
