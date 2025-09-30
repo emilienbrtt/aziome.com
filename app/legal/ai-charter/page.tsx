@@ -16,17 +16,15 @@ export default function Page() {
 
       <h1 className="text-4xl font-semibold gold-text">Charte IA responsable</h1>
 
-      <ul className="list-disc pl-6 space-y-3 text-muted text-lg">
-        <li>Transparence : les interactions IA sont identifiées clairement.</li>
-        <li>
-          HITL (Human-in-the-Loop) : un humain peut superviser, valider ou annuler les actions sensibles.
-        </li>
-        <li>
-          Données : pas d’usage secondaire sans consentement explicite. Pas de fine-tuning sur vos données sans accord.
-        </li>
-        <li>Journalisation : logs 30–90 jours pour audit et amélioration.</li>
-        <li>Réversibilité : export & suppression des données sur demande.</li>
+      <ul className="list-disc pl-6 space-y-3 text-muted">
+        <li><strong>Transparence</strong> : interactions IA clairement identifiées.</li>
+        <li><strong>Human-in-the-Loop</strong> : un humain peut superviser, valider ou annuler les actions sensibles.</li>
+        <li><strong>Données</strong> : pas d’usage secondaire sans consentement explicite. Pas de fine-tuning sur vos données sans accord.</li>
+        <li><strong>Journalisation</strong> : logs 30–90 jours pour sécurité, audit et amélioration.</li>
+        <li><strong>Réversibilité</strong> : export & suppression de vos données sur demande.</li>
       </ul>
+
+      <div className="text-sm text-muted/70 pt-4">Dernière mise à jour : aujourd’hui.</div>
     </section>
   );
 }
