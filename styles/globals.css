@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === Thème global (fond unifié) === */
 :root {
-  --bg: #000000;
+  /* Noir légèrement adouci pour éviter tout “banding” visuel */
+  --bg: #0B0B0B;
   --fg: #F4F4F5;
   --muted: #9CA3AF;
   --gold-1: #D4AF37;
@@ -12,9 +14,26 @@
 }
 
 html, body, #__next { height: 100%; }
-body { background: var(--bg); color: var(--fg); }
 
-/* Gold gradient text helper */
+/* Fond global unifié + couleur de texte par défaut */
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Les blocs structurels n’imposent JAMAIS un fond opaque */
+main, section, header, footer, article, aside {
+  background: transparent;
+}
+
+/* Les conteneurs larges potentiellement utilisés */
+.container, .wrapper, .shell {
+  background: transparent;
+}
+
+/* === Effets & helpers === */
+
+/* Texte doré */
 .gold-text {
   background: linear-gradient(92deg, var(--gold-1), var(--gold-2));
   -webkit-background-clip: text;
@@ -22,16 +41,20 @@ body { background: var(--bg); color: var(--fg); }
   color: transparent;
 }
 
-/* Focus ring */
-:focus-visible { outline: 2px solid rgba(246,231,178,0.7); outline-offset: 2px; }
+/* Focus ring accessible */
+:focus-visible {
+  outline: 2px solid rgba(246,231,178,0.7);
+  outline-offset: 2px;
+}
 
-/* Subtle glass background */
+/* Effet “verre” (conserve un léger voile) */
 .glass {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(8px);
 }
 
+/* Motion-safe */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
