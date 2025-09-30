@@ -44,12 +44,13 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  // STYLE des cartes : contour blanc/gris fin + pas d’outline bleu
+  /* ===== Contours : on remplace le ring (qui peut tirer vers le bleu) par une vraie bordure blanche/grise,
+     et on coupe complètement les outlines bleues de focus. ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
-      'rounded-2xl ring-1 ring-white/12 bg-[#0b0b0b] transition ' +
-      'hover:ring-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
-      'focus:outline-none focus-visible:outline-none';
+      'rounded-2xl border border-white/12 bg-[#0b0b0b] transition ' +
+      'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
+      'outline-none focus:outline-none focus-visible:outline-none';
 
     const anim = 'duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity,filter';
 
@@ -57,15 +58,15 @@ export default function Solutions() {
       return base + ' ' + anim + ' scale-100 opacity-100 z-[2]';
     }
     if (role === 'left') {
-      return base + ' ' + anim + ' scale-[0.88] opacity-70 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
+      return base + ' ' + anim + ' scale-[0.90] opacity-75 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
     }
-    return base + ' ' + anim + ' scale-[0.88] opacity-70 translate-x-2 md:translate-x-3 lg:translate-x-4';
+    return base + ' ' + anim + ' scale-[0.90] opacity-75 translate-x-2 md:translate-x-3 lg:translate-x-4';
   };
 
+  /* ===== Carte : même cadre, image un peu plus petite pour rester entière ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
       <div className="rounded-[inherit] overflow-hidden">
-        {/* Image : même cadre, image plus grande, sans changer la taille de la carte */}
         <div className="relative aspect-[4/5] w-full bg-black">
           <Image
             src={data.image}
@@ -74,18 +75,16 @@ export default function Solutions() {
             priority
             sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
             className={[
-              // Astuce pour “remplir” davantage sans casser le cadre :
-              // - object-cover coupe les marges transparentes des PNG
-              // - on ancre en bas pour garder les pieds visibles
-              // - on scale légèrement (centre > latérales)
-              'object-cover object-bottom select-none transition duration-200',
-              role === 'center' ? 'scale-[1.12]' : 'scale-[1.06] opacity-90'
+              // IMPORTANT : object-contain pour voir l’animal en entier,
+              // ancrage en bas, et un léger scale pour éviter qu’il paraisse “petit”.
+              'object-contain object-bottom select-none transition duration-200',
+              role === 'center' ? 'scale-[1.03]' : 'scale-[1.01]'
             ].join(' ')}
           />
-          {/* Dégradé profond vers le texte */}
+          {/* Dégradé vers le texte */}
           <div
             className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '58%' }}
+            style={{ height: '56%' }}
           />
         </div>
 
@@ -94,7 +93,10 @@ export default function Solutions() {
           <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : ' line-clamp-1')}>
             {data.blurb}
           </p>
-          <Link href={`/agents/${data.slug}`} className="mt-3 inline-block text-sm text-[color:var(--gold-1)]">
+          <Link
+            href={`/agents/${data.slug}`}
+            className="mt-3 inline-block text-sm text-[color:var(--gold-1)] outline-none focus:outline-none focus-visible:outline-none"
+          >
             Voir les détails →
           </Link>
         </div>
@@ -113,12 +115,12 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* Padding horizontal léger pour que le ring/ombre des cartes extrêmes ne soit JAMAIS coupé */}
+      {/* Légers paddings latéraux : le contour des cartes extrêmes n'est plus “coupé” */}
       <div className="relative py-8 px-2 md:px-4" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <button
           onClick={goPrev}
           className="hidden sm:flex items-center justify-center absolute left-[-14px] lg:left-[-22px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
+                     h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
@@ -127,7 +129,7 @@ export default function Solutions() {
         <button
           onClick={goNext}
           className="hidden sm:flex items-center justify-center absolute right-[-14px] lg:right-[-22px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
+                     h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
           aria-label="Suivant"
         >
           <ChevronRight className="h-6 w-6" />
