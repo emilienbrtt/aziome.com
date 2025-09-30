@@ -46,11 +46,26 @@ export default function Solutions() {
     };
   }, []);
 
+  // Défilement + boucle (wrap) si on atteint une extrémité
   const scrollByViewport = (dir: 'prev' | 'next') => {
     const el = trackRef.current;
     if (!el) return;
-    const amount = el.clientWidth; // 1 écran de cartes (1/2/3 selon la largeur)
-    el.scrollBy({ left: dir === 'next' ? amount : -amount, behavior: 'smooth' });
+    const amount = el.clientWidth;
+
+    if (dir === 'next') {
+      const maxScroll = el.scrollWidth - el.clientWidth - 1;
+      if (el.scrollLeft >= maxScroll) {
+        el.scrollTo({ left: 0, behavior: 'smooth' }); // wrap à gauche
+      } else {
+        el.scrollBy({ left: amount, behavior: 'smooth' });
+      }
+    } else {
+      if (el.scrollLeft <= 0) {
+        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' }); // wrap à droite
+      } else {
+        el.scrollBy({ left: -amount, behavior: 'smooth' });
+      }
+    }
   };
 
   return (
@@ -58,35 +73,35 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* CONTENEUR RELATIF pour placer les flèches aux DEUX côtés */}
+      {/* Conteneur pour positionner les flèches aux DEUX côtés */}
       <div className="relative">
-        {/* Flèche GAUCHE */}
+        {/* Flèche GAUCHE – plus grande */}
         <button
           onClick={() => scrollByViewport('prev')}
           disabled={!canPrev}
           className="hidden sm:flex items-center justify-center
-                     absolute left-[-8px] lg:left-[-14px] top-1/2 -translate-y-1/2 z-10
-                     h-10 w-10 rounded-full border border-white/15 bg-white/5
+                     absolute left-[-10px] lg:left-[-16px] top-1/2 -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:bg-white/10 backdrop-blur disabled:opacity-40 disabled:hover:bg-white/5 transition"
           aria-label="Voir les précédents"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
 
-        {/* Flèche DROITE */}
+        {/* Flèche DROITE – plus grande */}
         <button
           onClick={() => scrollByViewport('next')}
           disabled={!canNext}
           className="hidden sm:flex items-center justify-center
-                     absolute right-[-8px] lg:right-[-14px] top-1/2 -translate-y-1/2 z-10
-                     h-10 w-10 rounded-full border border-white/15 bg-white/5
+                     absolute right-[-10px] lg:right-[-16px] top-1/2 -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:bg-white/10 backdrop-blur disabled:opacity-40 disabled:hover:bg-white/5 transition"
           aria-label="Voir les suivants"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* PISTE SCROLLABLE */}
+        {/* Piste scrollable */}
         <div
           ref={trackRef}
           className="
@@ -99,45 +114,48 @@ export default function Solutions() {
           <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
 
           {CARDS.map((c) => (
+            // Boîte EXTERNE : ring fin + shadow non coupé (overflow visible)
             <article
               key={c.slug}
               className="
                 snap-start shrink-0
                 w-[85%] sm:w-[60%] md:w-[48%] lg:w-[32%]
-                rounded-2xl overflow-hidden
-                border border-white/12 bg-[#0b0b0b]
-                hover:border-[rgba(212,175,55,0.45)]
-                hover:shadow-[0_0_80px_rgba(212,175,55,0.25)]
+                rounded-2xl ring-1 ring-white/10 bg-[#0b0b0b]
+                hover:ring-[rgba(212,175,55,0.35)]
+                hover:shadow-[0_0_120px_rgba(212,175,55,0.22)]
                 transition
               "
             >
-              {/* IMAGE HAUTE + DÉGRADÉ BAS LARGE */}
-              <div className="relative aspect-[4/5] w-full">
-                <Image
-                  src={c.image}
-                  alt={c.name}
-                  fill
-                  sizes="(max-width: 768px) 85vw, (max-width: 1024px) 48vw, 32vw"
-                  className="object-cover object-top select-none"
-                  priority
-                />
-                {/* Dégradé qui remonte haut (≈45%) pour couvrir jusqu'au milieu des jambes */}
-                <div
-                  className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none"
-                  style={{ height: '45%' }}
-                />
-              </div>
+              {/* Boîte INTERNE : masque les coins, garde la shadow externe fluide */}
+              <div className="rounded-[inherit] overflow-hidden">
+                {/* Image haute + dégradé profond */}
+                <div className="relative aspect-[4/5] w-full">
+                  <Image
+                    src={c.image}
+                    alt={c.name}
+                    fill
+                    sizes="(max-width: 768px) 85vw, (max-width: 1024px) 48vw, 32vw"
+                    className="object-cover object-top select-none"
+                    priority
+                  />
+                  {/* Dégradé jusqu'au milieu des jambes (~50%) */}
+                  <div
+                    className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent pointer-events-none"
+                    style={{ height: '50%' }}
+                  />
+                </div>
 
-              {/* CONTENU */}
-              <div className="p-5">
-                <h3 className="text-xl font-semibold">{c.name}</h3>
-                <p className="mt-2 text-sm text-muted leading-relaxed">{c.blurb}</p>
-                <Link
-                  href={`/agents/${c.slug}`}
-                  className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
-                >
-                  Voir les détails →
-                </Link>
+                {/* Contenu */}
+                <div className="p-5">
+                  <h3 className="text-xl font-semibold">{c.name}</h3>
+                  <p className="mt-2 text-sm text-muted leading-relaxed">{c.blurb}</p>
+                  <Link
+                    href={`/agents/${c.slug}`}
+                    className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
+                  >
+                    Voir les détails →
+                  </Link>
+                </div>
               </div>
             </article>
           ))}
