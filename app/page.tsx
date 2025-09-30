@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Solutions from "@/components/Solutions";
 import Process from "@/components/Process";
+import Pricing from "@/components/Pricing";      // +++ AJOUT
 import Trust from "@/components/Trust";
 import Integrations from "@/components/Integrations";
 import FAQ from "@/components/FAQ";
@@ -15,6 +16,7 @@ export default function Page() {
       <Hero />
       <Solutions />
       <Process />
+      <Pricing />       {/* +++ AJOUT : section tarifs entre Process et Trust */}
       <Trust />
       <Integrations />
       <FAQ />
