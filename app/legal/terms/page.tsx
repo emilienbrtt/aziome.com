@@ -16,17 +16,22 @@ export default function Page() {
 
       <h1 className="text-4xl font-semibold gold-text">Mentions légales</h1>
 
-      <p className="text-lg text-muted">
-        Aziome — Liège, Belgique. Contact :{" "}
+      <p className="text-muted">
+        <strong>Aziome</strong> — Liège, Belgique. Contact :{" "}
         <a href="mailto:aziomeagency@gmail.com" className="underline">
           aziomeagency@gmail.com
         </a>
         .
       </p>
 
-      <p className="text-lg text-muted">
-        Raison sociale et n° d’entreprise : à compléter lors de la création de la société.
+      <p className="text-muted">
+        <em>Société en cours de création.</em> Raison sociale, forme juridique, n° d’entreprise et siège seront ajoutés
+        à l’immatriculation.
       </p>
+
+      <div className="text-sm text-muted/70 pt-4">
+        Dernière mise à jour : aujourd’hui.
+      </div>
     </section>
   );
 }
