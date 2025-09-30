@@ -78,7 +78,7 @@ export default function Solutions() {
               // IMPORTANT : object-contain pour voir l’animal en entier,
               // ancrage en bas, et un léger scale pour éviter qu’il paraisse “petit”.
               'object-contain object-bottom select-none transition duration-200',
-              role === 'center' ? 'scale-[1.03]' : 'scale-[1.01]'
+              role === 'center' ? 'scale-[1.05]' : 'scale-[1.03]'
             ].join(' ')}
           />
           {/* Dégradé vers le texte */}
