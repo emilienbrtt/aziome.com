@@ -38,13 +38,17 @@ export default function Header() {
 
         {/* NAV */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted">
-          <a href="#solutions" className="hover:text-fg">Agents</a>
-          <a href="#process" className="hover:text-fg">Lancement</a>
-          <a href="#trust" className="hover:text-fg">Garanties</a>
+          {/* 1. Agents IA (ex-Solutions) */}
+          <a href="#solutions" className="hover:text-fg">Agents IA</a>
+          {/* 2. Offres (ex-Confiance) -> vers #pricing */}
+          <a href="#pricing" className="hover:text-fg">Offres</a>
+          {/* 3. Déploiement (ex-Méthode) -> court et clair */}
+          <a href="#process" className="hover:text-fg">Déploiement</a>
+          {/* 4. Contact (inchangé) */}
           <a href="#contact" className="hover:text-fg">Contact</a>
         </nav>
 
-        {/* CTA — mène au formulaire */}
+        {/* CTA — mène au formulaire, même gradient doré */}
         <div className="py-3">
           <a
             href="/#contact"
