@@ -25,7 +25,7 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 export default function Solutions() {
   const [current, setCurrent] = useState(0);   // index central
-  const [dir, setDir] = useState<1 | -1>(1);   // sens voulu (1 = →, -1 = ←)
+  const [dir, setDir] = useState<1 | -1>(1);   // sens (1 = →, -1 = ←)
   const n = CARDS.length;
 
   const goNext = useCallback(() => { setDir(1); setCurrent(c => mod(c + 1, n)); }, [n]);
@@ -46,9 +46,10 @@ export default function Solutions() {
   const left   = CARDS[mod(current - 1, n)];
   const center = CARDS[current];
   const right  = CARDS[mod(current + 1, n)];
-
-  // ordre d’affichage = gauche, centre, droite
   const trio = [left, center, right];
+
+  // transition unique, plus LENTE et FLUIDE (règle tout : position, taille, opacité, image)
+  const T = { duration: 0.55, ease: [0.22, 1, 0.36, 1] } as const;
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
@@ -74,27 +75,27 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* La rangée : on laisse Framer gérer les transitions de layout (glisse réelle des mêmes cartes) */}
+        {/* Les mêmes cartes glissent réellement (layout) : pas de pop, pas de fade parasite */}
         <LayoutGroup id="agents-row">
           <motion.div
             layout
             className="flex items-stretch justify-center gap-5 overflow-visible"
-            transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
+            transition={{ layout: T }}
           >
             {trio.map((card) => {
               const isCenter = card.slug === center.slug;
-
               return (
                 <motion.div
                   layout
+                  layoutId={`slot-${card.slug}`} // identifiant partagé pour un glissement propre
                   key={card.slug}
                   className={isCenter
                     ? "w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]"
                     : "w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]"
                   }
-                  transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
+                  transition={{ layout: T }}
                 >
-                  <AgentCard data={card} isCenter={isCenter} dir={dir} />
+                  <AgentCard data={card} isCenter={isCenter} dir={dir} T={T} />
                 </motion.div>
               );
             })}
@@ -113,29 +114,25 @@ function AgentCard({
   data,
   isCenter,
   dir,
+  T,
 }: {
   data: CardDef;
   isCenter: boolean;
   dir: 1 | -1;
+  T: { duration: number; ease: number[] };
 }) {
-  // Animation propre : même élément, même key → Framer “layout” glisse l’élément
-  // On renforce la perception par un micro-translation directionnelle et un scale adapté.
-  const trans = { type: 'tween', duration: 0.42, ease: [0.22, 1, 0.36, 1] } as const;
-
   return (
     <motion.article
       layout
       initial={false}
       animate={{
-        // micro-translation directionnelle très légère pour accentuer la rotation
-        x: 0,
+        // Les cartes changent en DOUCEUR d’échelle/opacité/lumière pendant le glissement
         scale: isCenter ? 1.0 : 0.92,
         opacity: isCenter ? 1 : 0.72,
-        filter: isCenter ? 'saturate(1) brightness(1)'
-                         : 'saturate(.78) brightness(.92)',
+        filter: isCenter ? 'saturate(1) brightness(1)' : 'saturate(.78) brightness(.92)',
         zIndex: isCenter ? 2 : 1,
       }}
-      transition={{ layout: trans, ...trans }}
+      transition={{ layout: T, ...T }}
       className={[
         // Contour blanc discret (pas de bleu) + glow doré au hover
         'rounded-2xl border border-white/14 bg-[#0b0b0b] transition',
@@ -144,26 +141,22 @@ function AgentCard({
       ].join(' ')}
       style={
         {
-          // Taille visuelle de l’image (sans couper, object-contain) :
-          // centre un peu plus grand, côtés aussi plus grands.
-          ['--imgScale' as any]: isCenter ? 1.18 : 1.10,
-          // petit “hint” directionnel (quasi imperceptible mais aide le cerveau)
-          ['--hintX' as any]: isCenter ? 0 : (dir === 1 ? -4 : 4),
+          // Images plus grandes et proportionnelles (sans couper)
+          // (ajusté un cran au-dessus comme demandé)
+          ['--imgScale' as any]: isCenter ? 1.20 : 1.12,
+          // petit hint directionnel (infime) pour ancrer le sens de rotation
+          ['--hintX' as any]: isCenter ? 0 : (dir === 1 ? -3 : 3),
         } as React.CSSProperties
       }
     >
       <div className="rounded-[inherit] overflow-hidden">
-        {/* Image */}
-        <motion.div
-          layout
-          className="relative aspect-[4/5] w-full bg-black"
-          transition={{ layout: trans }}
-        >
+        {/* Bloc image (ratio constant) */}
+        <motion.div layout className="relative aspect-[4/5] w-full bg-black" transition={{ layout: T }}>
           <motion.div
             layout
             className="absolute inset-0 [transform-origin:50%_100%]"
             animate={{ x: 'var(--hintX)' as any, scale: isCenter ? 1.0 : 0.985 }}
-            transition={trans}
+            transition={T}
           >
             <Image
               src={data.image}
@@ -176,13 +169,13 @@ function AgentCard({
             />
           </motion.div>
 
-          {/* voile léger sur les côtés */}
+          {/* Voile léger sur les côtés (simplifier) */}
           {!isCenter && <div className="absolute inset-0 bg-black/10 pointer-events-none" />}
 
-          {/* dégradé vers le texte */}
+          {/* Dégradé vers le texte */}
           <div
             className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '56%' }}
+            style={{ height: '54%' }} // un peu moins haut pour laisser “respirer” l’image agrandie
           />
         </motion.div>
 
