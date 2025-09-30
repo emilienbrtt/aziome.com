@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* -------------------- Données -------------------- */
 type CardDef = {
-  slug: 'max' | 'lea' | 'jules' | 'mia' | 'chris';
+  slug: string;
   name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
   image: string;
   blurb: string;
@@ -21,85 +20,51 @@ const CARDS: CardDef[] = [
   { slug: 'chris', name: 'Chris', image: '/agents/chris.png', blurb: "Gère les demandes internes et la paperasse sans retard." },
 ];
 
-/* -------------------- Utils mesure -------------------- */
-function getGapPx(el: HTMLElement) {
-  const g = getComputedStyle(el).gap || '0px';
-  return parseFloat(g);
-}
-
-/* -------------------- Composant -------------------- */
 export default function Solutions() {
-  const viewportRef = useRef<HTMLDivElement>(null); // conteneur scrollable
-  const trackRef = useRef<HTMLDivElement>(null);    // piste flex
-  const slideRef = useRef<HTMLDivElement>(null);    // 1er slide réel pour mesurer
+  const trackRef = useRef<HTMLDivElement>(null);
+  const firstCardRef = useRef<HTMLDivElement>(null);
+  const cardStepRef = useRef<number>(0); // largeur d’UNE carte + gap
 
-  const [perView, setPerView] = useState(3);
-  const [cardFullW, setCardFullW] = useState(0); // largeur carte + gap (px)
-
-  // Clones de début/fin pour boucle infinie
-  const slides = useMemo(() => {
-    const head = CARDS.slice(-perView);
-    const tail = CARDS.slice(0, perView);
-    return [...head, ...CARDS, ...tail];
-  }, [perView]);
-
-  // Mesure responsive : combien de cartes visibles + largeur d'une carte
-  const measure = () => {
-    const vp = viewportRef.current;
-    const slide = slideRef.current;
-    if (!vp || !slide) return;
-    const gap = getGapPx(trackRef.current as HTMLElement);
-    const full = slide.getBoundingClientRect().width + gap;
-    const p = Math.max(1, Math.round(vp.clientWidth / full));
-    setPerView(p);
-    setCardFullW(full);
-  };
-
+  // Mesure une carte (largeur + gap) => défilement “par carte”
   useLayoutEffect(() => {
-    measure();
-    const onResize = () => measure();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const calc = () => {
+      const el = trackRef.current;
+      const first = firstCardRef.current;
+      if (!el || !first) return;
+      const style = getComputedStyle(el);
+      const gap = parseFloat(style.gap || '0');
+      const w = first.getBoundingClientRect().width;
+      cardStepRef.current = w + gap;
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
   }, []);
 
-  // On place le scroll au début "réel" (après les clones de tête)
-  useEffect(() => {
-    const vp = viewportRef.current;
-    if (!vp || !cardFullW) return;
-    vp.scrollTo({ left: perView * cardFullW, behavior: 'auto' });
-  }, [perView, cardFullW]);
+  // Met à jour l’état des flèches (toujours actives → boucle)
+  const scrollByOne = (dir: 'prev' | 'next') => {
+    const el = trackRef.current;
+    const step = cardStepRef.current || 300;
+    if (!el) return;
 
-  // Boucle infinie : si on dépasse, on téléporte sans animation
-  useEffect(() => {
-    const vp = viewportRef.current;
-    if (!vp || !cardFullW) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const pos = el.scrollLeft;
 
-    let timer: number | undefined;
-    const onScroll = () => {
-      if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        const start = perView * cardFullW;
-        const end = (perView + CARDS.length) * cardFullW;
-
-        if (vp.scrollLeft < start - cardFullW / 2) {
-          // passé dans les clones de gauche → téléporte à la fin réelle
-          vp.scrollTo({ left: vp.scrollLeft + CARDS.length * cardFullW, behavior: 'auto' });
-        } else if (vp.scrollLeft > end + cardFullW / 2) {
-          // passé dans les clones de droite → téléporte au début réel
-          vp.scrollTo({ left: vp.scrollLeft - CARDS.length * cardFullW, behavior: 'auto' });
-        }
-      }, 80); // 80ms après l'arrêt du scroll
-    };
-
-    vp.addEventListener('scroll', onScroll, { passive: true });
-    return () => vp.removeEventListener('scroll', onScroll);
-  }, [perView, cardFullW]);
-
-  const go = (dir: 'prev' | 'next') => {
-    const vp = viewportRef.current;
-    if (!vp || !cardFullW) return;
-    const delta = dir === 'next' ? vp.clientWidth : -vp.clientWidth;
-    vp.scrollBy({ left: delta, behavior: 'smooth' });
+    if (dir === 'next') {
+      // si on est (presque) au bout → wrap au début
+      if (pos + step >= max - 2) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    } else {
+      // si on est (presque) au début → wrap à la fin
+      if (pos - step <= 2) {
+        el.scrollTo({ left: max, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: -step, behavior: 'smooth' });
+      }
+    }
   };
 
   return (
@@ -107,109 +72,94 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      <div className="relative">
-        {/* Flèches, plus grandes, de chaque côté */}
+      {/* CONTENEUR élargi pour que l’ombre ne soit pas “cassée” */}
+      <div className="relative py-6">
+
+        {/* Flèche GAUCHE/DROITE – toujours actives, défilement par carte */}
         <button
-          onClick={() => go('prev')}
+          onClick={() => scrollByOne('prev')}
           className="hidden sm:flex items-center justify-center
                      absolute left-[-14px] lg:left-[-20px] top-1/2 -translate-y-1/2 z-10
                      h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:bg-white/10 backdrop-blur transition"
-          aria-label="Précédent"
+          aria-label="Voir les précédents"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
         <button
-          onClick={() => go('next')}
+          onClick={() => scrollByOne('next')}
           className="hidden sm:flex items-center justify-center
                      absolute right-[-14px] lg:right-[-20px] top-1/2 -translate-y-1/2 z-10
                      h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:bg-white/10 backdrop-blur transition"
-          aria-label="Suivant"
+          aria-label="Voir les suivants"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* VIEWPORT : pas de coupe verticale pour laisser respirer la shadow */}
+        {/* PISTE SCROLLABLE — padding vertical pour laisser respirer le glow */}
         <div
-          ref={viewportRef}
+          ref={trackRef}
           className="
-            overflow-x-auto overflow-y-visible scroll-smooth
+            flex gap-5 overflow-x-auto overflow-y-visible overscroll-x-contain scroll-smooth
             [scrollbar-width:none] [-ms-overflow-style:none]
-            py-3
+            snap-x snap-mandatory px-1 py-2
           "
+          style={{ scrollPaddingLeft: 4, scrollPaddingRight: 4 }}
         >
           <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
 
-          {/* PISTE */}
-          <div
-            ref={trackRef}
-            className="
-              flex gap-5 snap-x snap-mandatory
-              px-1
-            "
-          >
-            {slides.map((c, i) => (
-              <article
-                // on marque le premier vrai slide pour mesurer
-                ref={i === perView ? slideRef : undefined}
-                key={`${c.slug}-${i}`}
+          {CARDS.map((c, idx) => (
+            <article
+              key={c.slug}
+              ref={idx === 0 ? firstCardRef : undefined}
+              className="
+                snap-start shrink-0
+                w-[85%] sm:w-[60%] md:w-[48%] lg:w-[32%]
+              "
+            >
+              {/* Conteneur EXTERNE : contour gris fin 360°, glow large au survol */}
+              <div
                 className="
-                  snap-start shrink-0
-                  w-[85%] sm:w-[60%] md:w-[48%] lg:w-[32%]
+                  rounded-2xl ring-1 ring-white/12 bg-[#0b0b0b]
+                  hover:ring-[rgba(212,175,55,0.50)]
+                  hover:shadow-[0_0_140px_rgba(212,175,55,0.20)]
+                  transition
                 "
               >
-                {/* Conteneur EXTERNE : contour gris fin + ombre non coupée */}
-                <div
-                  className="
-                    rounded-2xl ring-1 ring-white/12 bg-[#0b0b0b]
-                    hover:ring-[rgba(212,175,55,0.50)]
-                    hover:shadow-[0_0_120px_rgba(212,175,55,0.20)]
-                    transition
-                  "
-                >
-                  {/* INTERNE : arrondis + découpe, pas d’ombre coupée */}
-                  <div className="rounded-[inherit] overflow-hidden">
-                    {/* IMAGE HAUTE — taille raisonnable + dégradé profond */}
+                {/* INTERNE : arrondis nets, dégradé profond comme Limova */}
+                <div className="rounded-[inherit] overflow-hidden">
+                  <div className="relative aspect-[4/5] w-full bg-black">
+                    <Image
+                      src={c.image}
+                      alt={c.name}
+                      fill
+                      sizes="(max-width: 768px) 85vw, (max-width: 1024px) 48vw, 32vw"
+                      className="object-contain object-bottom select-none"
+                      priority
+                    />
+                    {/* Dégradé plus long (≈ 60%) qui fond dans le texte */}
                     <div
-                      className="
-                        relative w-full aspect-[4/5]
-                        max-h-[420px] md:max-h-[460px] lg:max-h-[500px]
-                        bg-black
-                      "
-                    >
-                      <Image
-                        src={c.image}
-                        alt={c.name}
-                        fill
-                        sizes="(max-width: 768px) 85vw, (max-width: 1024px) 48vw, 32vw"
-                        className="object-contain object-bottom select-none"
-                        priority
-                      />
-                      {/* Dégradé type Limova jusqu’au texte */}
-                      <div
-                        className="absolute inset-x-0 bottom-0 pointer-events-none
-                                   bg-gradient-to-t from-black/92 via-black/55 to-transparent"
-                        style={{ height: '55%' }}
-                      />
-                    </div>
+                      className="absolute inset-x-0 bottom-0 pointer-events-none
+                                 bg-gradient-to-t from-black/92 via-black/60 to-transparent"
+                      style={{ height: '60%' }}
+                    />
+                  </div>
 
-                    {/* TEXTE */}
-                    <div className="p-5">
-                      <h3 className="text-xl font-semibold">{c.name}</h3>
-                      <p className="mt-2 text-sm text-muted leading-relaxed">{c.blurb}</p>
-                      <Link
-                        href={`/agents/${c.slug}`}
-                        className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
-                      >
-                        Voir les détails →
-                      </Link>
-                    </div>
+                  <div className="p-5">
+                    <h3 className="text-xl font-semibold">{c.name}</h3>
+                    <p className="mt-2 text-sm text-muted leading-relaxed">{c.blurb}</p>
+                    <Link
+                      href={`/agents/${c.slug}`}
+                      className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
+                    >
+                      Voir les détails →
+                    </Link>
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </section>
