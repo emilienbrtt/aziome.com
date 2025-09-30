@@ -25,7 +25,7 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 export default function Solutions() {
   const [current, setCurrent] = useState(0);     // index au centre
-  const [dir, setDir] = useState<1 | -1>(1);     // sens du “pivot”
+  const [dir, setDir] = useState<1 | -1>(1);     // sens de la rotation (pour le glissement)
   const n = CARDS.length;
 
   const goNext = useCallback(() => {
@@ -50,7 +50,6 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  // indices visibles
   const left   = CARDS[mod(current - 1, n)];
   const center = CARDS[current];
   const right  = CARDS[mod(current + 1, n)];
@@ -60,11 +59,7 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      <div
-        className="relative py-8"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
+      <div className="relative py-8" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Flèches */}
         <button
           onClick={goPrev}
@@ -87,13 +82,13 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Rangée avec micro-translation selon la flèche cliquée (effet “rotation”) */}
+        {/* Rangée : léger glissement dans le sens choisi (effet rotation) */}
         <motion.div
-          className="flex items-stretch justify-center gap-5 overflow-visible"
           key={current + '-' + dir}
-          initial={{ x: dir === 1 ? 16 : -16, opacity: 0.95 }}
+          className="flex items-stretch justify-center gap-5 overflow-visible"
+          initial={{ x: dir === 1 ? 22 : -22, opacity: 0.98 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ type: 'tween', duration: 0.28 }}
+          transition={{ type: 'tween', duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
             <AgentCard role="side" data={left} />
@@ -123,41 +118,46 @@ function AgentCard({
   data: CardDef;
   role: 'center' | 'side';
 }) {
-  // 1) Contours BLANCS au repos (+ glow doré au hover)
-  // 2) Proportions d’images garanties:
-  //    - object-contain pour rester entier
-  //    - image un peu plus grande au centre, un peu plus petite en latéral
-  //    - on ajuste simplement via une variable CSS --imgScale
   const isCenter = role === 'center';
+
+  // Variants d’animation : taille, opacité, “simplicité” (saturation/brightness)
+  const variants = {
+    center: {
+      scale: 1, // carte pleine
+      opacity: 1,
+      filter: 'saturate(1) brightness(1)',
+      zIndex: 2,
+    },
+    side: {
+      scale: 0.92,                // un peu plus petite
+      opacity: 0.78,              // plus discrète
+      filter: 'saturate(.85) brightness(.92)', // plus “simple”
+      zIndex: 1,
+    },
+  } as const;
 
   return (
     <motion.article
       initial={false}
-      animate={{
-        scale: isCenter ? 1.0 : 0.92,
-        opacity: isCenter ? 1 : 0.78,
-        zIndex: isCenter ? 2 : 1,
-      }}
+      animate={isCenter ? 'center' : 'side'}
+      variants={variants}
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className={[
-        'rounded-2xl',
-        'border border-white/12',                // <-- bord BLANC fin (plus de bleu)
-        'bg-[#0b0b0b]',
-        'transition',
-        'hover:border-[rgba(212,175,55,0.40)]',  // hover doré
+        // Contours BLANCS au repos (+ glow doré au hover)
+        'rounded-2xl border border-white/12 bg-[#0b0b0b] transition',
+        'hover:border-[rgba(212,175,55,0.40)]',
         'hover:shadow-[0_0_120px_rgba(212,175,55,0.18)]',
         'outline-none focus:outline-none focus-visible:outline-none',
       ].join(' ')}
       style={
         {
-          // scale image : centre un peu plus grand, côtés un peu plus petits
-          // (ces valeurs ont été testées pour rester entières dans la carte)
-          ['--imgScale' as any]: isCenter ? 1.05 : 0.98,
+          // Images plus grandes mais entières : centre +9% / côtés +3%
+          ['--imgScale' as any]: isCenter ? 1.09 : 1.03,
         } as React.CSSProperties
       }
     >
       <div className="rounded-[inherit] overflow-hidden">
-        {/* Zone image — même ratio partout */}
+        {/* Zone image — ratio constant */}
         <div className="relative aspect-[4/5] w-full bg-black">
           <Image
             src={data.image}
@@ -169,11 +169,11 @@ function AgentCard({
                        [transform-origin:50%_100%]
                        [transform:scale(var(--imgScale))]"
           />
-          {/* Dégradé pour lier l’image au texte */}
+          {/* Dégradé qui rejoint le texte */}
           <div
             className="absolute inset-x-0 bottom-0 pointer-events-none
                        bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '58%' }}
+            style={{ height: '56%' }}
           />
         </div>
 
