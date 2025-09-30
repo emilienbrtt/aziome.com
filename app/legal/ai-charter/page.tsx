@@ -1,4 +1,9 @@
-export const metadata = { title: "Charte IA responsable — Aziome" };
+export const metadata = {
+  title: "Charte IA responsable — Aziome",
+  description:
+    "Transparence, Human-in-the-Loop, pas d’usage secondaire sans accord, logs 30–90 jours, réversibilité.",
+};
+
 export default function Page() {
   return (
     <section className="max-w-3xl mx-auto px-6 py-24 space-y-6">
