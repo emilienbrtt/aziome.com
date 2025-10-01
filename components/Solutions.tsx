@@ -1,6 +1,6 @@
-`'use client';
+'use client';
 
-import { useCallback, useRef, useState, type TouchEvent } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -35,8 +35,8 @@ export default function Solutions() {
 
   // Swipe mobile
   const touchStartX = useRef<number | null>(null);
-  const onTouchStart = (e: TouchEvent) => (touchStartX.current = e.touches[0].clientX);
-  const onTouchEnd = (e: TouchEvent) => {
+  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current == null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
@@ -55,21 +55,21 @@ export default function Solutions() {
 
     if (role === 'center') {
       return base + ' ' + anim +
-        ' ring-white/15 group-hover:ring-[rgba(212,175,55,0.50)] ' +
-        ' group-hover:shadow-[0_0_120px_rgba(212,175,55,0.28)] ' +
+        ' ring-white/15 hover:ring-[rgba(212,175,55,0.50)] ' +
+        ' hover:shadow-[0_0_120px_rgba(212,175,55,0.28)] ' +
         ' scale-100 opacity-100 z-[2]';
     }
     const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
     return base + ' ' + anim +
-      ' ring-white/10 group-hover:ring-[rgba(212,175,55,0.38)] ' +
-      ' group-hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] ' +
+      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] ' +
+      ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] ' +
       ' scale-[0.95] opacity-90 ' + shift;
   };
 
   /* ===== Carte (anti-débordement + tailles finales) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Halo doré subtil derrière la carte */}
+      {/* Halo doré subtil au hover */}
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0
@@ -82,7 +82,7 @@ export default function Solutions() {
 
       {/* Zone image (hauteur compacte) */}
       <div className="relative h-[360px] sm:h-[400px] lg:h-[440px] bg-black">
-        {/* Réserve bas + remontée → pieds au-dessus du texte, pas un pixel de plus */}
+        {/* Réserve bas + légère remontée pour ne jamais toucher le texte */}
         <div className="absolute inset-0 pt-0 pb-[84px]">
           <Image
             src={data.image}
@@ -94,13 +94,13 @@ export default function Solutions() {
               'object-contain object-bottom select-none pointer-events-none',
               'transition-transform duration-300',
               role === 'center'
-                ? 'scale-[1.62] -translate-y-[2.4%]'  // plus grand mais au-dessus de la ligne rouge
-                : 'scale-[1.50] -translate-y-[1.6%]', // côtés plus grands et symétriques
+                ? 'scale-[1.62] -translate-y-[2.4%]'  // centre : plus grand, mais au-dessus de la limite
+                : 'scale-[1.50] -translate-y-[1.6%]', // côtés : plus grands et symétriques
             ].join(' ')}
           />
         </div>
 
-        {/* Gradient = égal à la réserve bas (84px) */}
+        {/* Gradient = même hauteur que la réserve bas (84px) */}
         <div
           className="absolute inset-x-0 bottom-0 h-[84px] bg-gradient-to-b from-transparent to-black/70"
           aria-hidden
@@ -138,10 +138,10 @@ export default function Solutions() {
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           {/* LEFT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche gauche : collée à l'extrémité GAUCHE de la carte gauche */}
+            {/* Flèche gauche — à l’extrémité GAUCHE de la carte */}
             <button
               onClick={goPrev}
-              className="group/arrow hidden sm:flex items-center justify-center
+              className="group hidden sm:flex items-center justify-center
                          absolute left-2 top-1/2 -translate-y-1/2 z-30
                          h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                          hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10
@@ -152,7 +152,7 @@ export default function Solutions() {
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-0 rounded-full opacity-0
-                           group-hover/arrow:opacity-100 transition duration-300"
+                           group-hover:opacity-100 transition duration-300"
                 style={{ background: 'radial-gradient(45% 45% at 50% 50%, rgba(212,175,55,0.38), rgba(0,0,0,0))' }}
               />
               <ChevronLeft className="relative z-10 h-6 w-6" />
@@ -168,10 +168,10 @@ export default function Solutions() {
 
           {/* RIGHT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche droite : collée à l'extrémité DROITE de la carte droite */}
+            {/* Flèche droite — à l’extrémité DROITE de la carte */}
             <button
               onClick={goNext}
-              className="group/arrow hidden sm:flex items-center justify-center
+              className="group hidden sm:flex items-center justify-center
                          absolute right-2 top-1/2 -translate-y-1/2 z-30
                          h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                          hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10
@@ -182,7 +182,7 @@ export default function Solutions() {
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-0 rounded-full opacity-0
-                           group-hover/arrow:opacity-100 transition duration-300"
+                           group-hover:opacity-100 transition duration-300"
                 style={{ background: 'radial-gradient(45% 45% at 50% 50%, rgba(212,175,55,0.38), rgba(0,0,0,0))' }}
               />
               <ChevronRight className="relative z-10 h-6 w-6" />
