@@ -23,17 +23,18 @@ const CARDS: CardDef[] = [
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 // paramètres d’anim
-const DURATION = 700; // ms
+const DURATION = 720; // ms (plus lent & fluide)
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export default function Solutions() {
-  const [current, setCurrent] = useState(0);   // index logique
-  const [dir, setDir] = useState<0 | 1 | -1>(0); // sens en cours : -1 = prev, 1 = next, 0 = repos
-  const [anim, setAnim] = useState(false);
+  const [current, setCurrent] = useState(0);         // index logique au centre
+  const [dir, setDir] = useState<0 | 1 | -1>(0);     // 1=next, -1=prev, 0=repos
+  const [anim, setAnim] = useState(false);           // animation en cours ?
+  const [noTransition, setNoTransition] = useState(false); // pour reset sans flash
+  const [edgeLive, setEdgeLive] = useState(false);   // pour l’apparition progressive de la carte entrante
 
   const n = CARDS.length;
 
-  // indices autour du centre (et la carte “entrante” pour le slide)
   const idxLeft    = useMemo(() => mod(current - 1, n), [current, n]);
   const idxCenter  = useMemo(() => mod(current, n), [current, n]);
   const idxRight   = useMemo(() => mod(current + 1, n), [current, n]);
@@ -42,13 +43,13 @@ export default function Solutions() {
     [current, n, dir]
   );
 
-  // pour swipe mobile
-  const startX = useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => (startX.current = e.touches[0].clientX);
+  // swipe mobile
+  const touchX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => (touchX.current = e.touches[0].clientX);
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (startX.current == null) return;
-    const dx = e.changedTouches[0].clientX - startX.current;
-    startX.current = null;
+    if (touchX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    touchX.current = null;
     if (Math.abs(dx) < 40) return;
     dx < 0 ? next() : prev();
   };
@@ -57,56 +58,78 @@ export default function Solutions() {
     if (anim) return;
     setDir(1);
     setAnim(true);
+    // monte la carte entrante depuis le bord avec opacity 0 -> 1
+    setEdgeLive(false);
+    requestAnimationFrame(() => setEdgeLive(true));
   }, [anim]);
 
   const prev = useCallback(() => {
     if (anim) return;
     setDir(-1);
     setAnim(true);
+    setEdgeLive(false);
+    requestAnimationFrame(() => setEdgeLive(true));
   }, [anim]);
 
-  // quand l’anim finit, on fige le nouvel index et on remet le track au repos
+  // Fin d’animation : on met à jour l’index, on reset le track SANS transition
   useEffect(() => {
     if (!anim) return;
     const t = setTimeout(() => {
       setCurrent(c => mod(c + dir, n));
       setDir(0);
+      setNoTransition(true);   // coupe la transition
+      setEdgeLive(false);
       setAnim(false);
+      // réactive la transition au tick suivant
+      const r = requestAnimationFrame(() => setNoTransition(false));
+      return () => cancelAnimationFrame(r);
     }, DURATION + 20);
     return () => clearTimeout(t);
   }, [anim, dir, n]);
 
-  /* ====== Styles des cartes : contours & hover (blanc au repos, doré au hover) ====== */
+  /* ====== Styles contours ====== */
   const baseCard =
     'rounded-2xl border border-white/12 bg-[#0b0b0b] ' +
     'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
     'outline-none focus:outline-none focus-visible:outline-none ' +
     'transition-[border-color,box-shadow]';
 
-  /* ====== Une carte (image plus grande & overlay sur latérales) ====== */
+  /* ====== Carte (image + overlay latérales) ====== */
   function Card({
     data,
-    role, // 'left' | 'center' | 'right'
+    role, // 'left' | 'center' | 'right' | 'edge-left' | 'edge-right'
+    entering, // true sur la carte entrante pour fade/slide-in
   }: {
     data: CardDef;
-    role: 'left' | 'center' | 'right';
+    role: 'left' | 'center' | 'right' | 'edge-left' | 'edge-right';
+    entering?: boolean;
   }) {
     const isCenter = role === 'center';
-    const isSide = !isCenter;
+    const isSide = role === 'left' || role === 'right';
+    const isEdge = role === 'edge-left' || role === 'edge-right';
 
-    // échelle carte (centre un peu plus grand, latérales un peu plus petites)
+    // échelle carte (centre > latérales)
     const cardScale = isCenter ? 1.0 : 0.92;
-    // image plus grande mais toujours entière (object-contain + ancrée en bas)
-    const imgScale = isCenter ? 1.18 : 1.08;
+    // image plus grande mais entière
+    const imgScale = isCenter ? 1.22 : 1.10; // + un petit cran
     // assombrissement latérales
-    const shade = isCenter ? 0 : 0.16;
+    const shade = isCenter ? 0 : 0.18;
+
+    // apparition progressive de la carte entrante
+    const enterOffset = role === 'edge-right' ? 40 : role === 'edge-left' ? -40 : 0;
 
     return (
       <article
         className={baseCard}
         style={{
           transform: `scale(${cardScale})`,
-          transition: `transform ${DURATION}ms ${EASE}`,
+          transition: `${noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`}`,
+          opacity: isEdge ? (edgeLive ? 1 : 0) : 1,
+          // léger décalage depuis le bord pour l’edge qui arrive
+          translate: isEdge ? `${edgeLive ? 0 : enterOffset}px 0` : undefined,
+          transitionProperty: noTransition ? undefined : 'transform, opacity, translate',
+          transitionDuration: noTransition ? undefined : `${DURATION}ms`,
+          transitionTimingFunction: noTransition ? undefined : EASE,
         }}
       >
         <div className="rounded-[inherit] overflow-hidden">
@@ -120,19 +143,21 @@ export default function Solutions() {
               className="object-contain object-bottom select-none"
               style={{
                 transform: `scale(${imgScale})`,
-                transition: `transform ${DURATION}ms ${EASE}`,
+                transition: `${noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`}`,
               }}
             />
-            {/* assombrissement des latérales */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.16), rgba(0,0,0,0.16))',
-                opacity: shade,
-                transition: `opacity ${DURATION}ms ${EASE}`,
-              }}
-            />
-            {/* dégradé bas vers le texte (identique) */}
+            {/* assombrissement latérales */}
+            {(isSide || isEdge) && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.18), rgba(0,0,0,0.18))',
+                  opacity: shade,
+                  transition: `${noTransition ? 'none' : `opacity ${DURATION}ms ${EASE}`}`,
+                }}
+              />
+            )}
+            {/* dégradé bas vers le texte */}
             <div
               className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
               style={{ height: '58%' }}
@@ -144,10 +169,7 @@ export default function Solutions() {
             <p className={'mt-2 text-sm leading-relaxed text-muted ' + (isCenter ? '' : ' line-clamp-1')}>
               {data.blurb}
             </p>
-            <Link
-              href={`/agents/${data.slug}`}
-              className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
-            >
+            <Link href={`/agents/${data.slug}`} className="mt-3 inline-block text-sm text-[color:var(--gold-1)]">
               Voir les détails →
             </Link>
           </div>
@@ -156,43 +178,41 @@ export default function Solutions() {
     );
   }
 
-  /* ====== Piste coulissante : 3 cartes visibles + 1 entrante pour l’anim ======
-     — Vue “repos” : [LEFT | CENTER | RIGHT]
-     — NEXT : on ajoute FAR à droite et on translate vers la gauche
-     — PREV : on ajoute FAR à gauche et on translate vers la droite
-     Le tout reste très proche de ta mise en page (largeurs identiques). */
-  const CARD_W = { left: '28%', center: '32%', right: '28%' }; // proche de tes 28/32
-  const GAP = 20; // px d’écart entre cartes
+  /* ====== Composition du carrousel ======
+     On affiche 3 cartes au repos. Pendant l’anim on ajoute 1 carte “entrante”
+     (à droite si NEXT, à gauche si PREV) et on translate la piste.
+  */
+  const CARD_W = { left: '28%', center: '32%', right: '28%' };
+  const GAP = 20;
 
-  // composition selon la direction
   const sequence = useMemo(() => {
     if (dir === 1) {
-      // NEXT : [left, center, right, farRight] -> translateX - (center + gap)
+      // NEXT : [left, center, right, farRight]
       return [
-        { key: `L-${idxLeft}`,   role: 'left'   as const, data: CARDS[idxLeft],   width: CARD_W.left  },
-        { key: `C-${idxCenter}`, role: 'center' as const, data: CARDS[idxCenter], width: CARD_W.center},
-        { key: `R-${idxRight}`,  role: 'right'  as const, data: CARDS[idxRight],  width: CARD_W.right },
-        { key: `F-${idxFar}`,    role: 'right'  as const, data: CARDS[idxFar],    width: CARD_W.right },
+        { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
+        { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
+        { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
+        { key: `E-${idxFar}`,    role: 'edge-right' as const, data: CARDS[idxFar], width: CARD_W.right, entering: true },
       ];
     }
     if (dir === -1) {
-      // PREV : [farLeft, left, center, right] -> translateX + (left + gap)
+      // PREV : [farLeft, left, center, right]
       return [
-        { key: `F-${idxFar}`,    role: 'left'   as const, data: CARDS[idxFar],    width: CARD_W.left  },
-        { key: `L-${idxLeft}`,   role: 'left'   as const, data: CARDS[idxLeft],   width: CARD_W.left  },
-        { key: `C-${idxCenter}`, role: 'center' as const, data: CARDS[idxCenter], width: CARD_W.center},
-        { key: `R-${idxRight}`,  role: 'right'  as const, data: CARDS[idxRight],  width: CARD_W.right },
+        { key: `E-${idxFar}`,    role: 'edge-left' as const, data: CARDS[idxFar], width: CARD_W.left, entering: true },
+        { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
+        { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
+        { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
       ];
     }
     // repos
     return [
-      { key: `L-${idxLeft}`,   role: 'left'   as const, data: CARDS[idxLeft],   width: CARD_W.left  },
-      { key: `C-${idxCenter}`, role: 'center' as const, data: CARDS[idxCenter], width: CARD_W.center},
-      { key: `R-${idxRight}`,  role: 'right'  as const, data: CARDS[idxRight],  width: CARD_W.right },
+      { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
+      { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
+      { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
     ];
   }, [dir, idxLeft, idxCenter, idxRight, idxFar]);
 
-  // calcul de la translation px selon la direction (on glisse d’une carte + gap)
+  // translation de la piste (d’une carte + gap) avec reset sans transition
   const trackRef = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
 
@@ -200,18 +220,17 @@ export default function Solutions() {
     const track = trackRef.current;
     if (!track) return;
 
-    const cards = Array.from(track.children) as HTMLElement[];
-    if (cards.length === 0) return;
+    const els = Array.from(track.children) as HTMLElement[];
+    if (!els.length) return;
 
-    // largeur à glisser = largeur de la carte centrale (ou gauche) + gap
     if (dir === 1) {
-      // NEXT : on glisse vers la gauche de (width(center)+gap)
-      const centerEl = cards[1]; // [left, center, right, far]
+      // NEXT : se décaler de la largeur de la carte centrale
+      const centerEl = els[1]; // [left, center, right, edge-right]
       const w = centerEl.getBoundingClientRect().width;
       setShift(-(w + GAP));
     } else if (dir === -1) {
-      // PREV : on glisse vers la droite de (width(left)+gap)
-      const leftEl = cards[0]; // [far, left, center, right]
+      // PREV : se décaler de la largeur de la carte gauche
+      const leftEl = els[0]; // [edge-left, left, center, right]
       const w = leftEl.getBoundingClientRect().width;
       setShift(w + GAP);
     } else {
@@ -244,21 +263,22 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* fenêtre : overflow visible pour laisser passer l’ombre */}
+        {/* fenêtre (overflow visible pour le glow) */}
         <div className="relative mx-auto max-w-full overflow-visible">
-          {/* track coulissant */}
+          {/* piste coulissante */}
           <div
             ref={trackRef}
             className="mx-auto flex items-stretch justify-center"
             style={{
               gap: `${GAP}px`,
               transform: `translateX(${shift}px)`,
-              transition: `transform ${DURATION}ms ${EASE}`,
+              transition: noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`,
+              willChange: 'transform',
             }}
           >
-            {sequence.map(({ key, role, data, width }) => (
+            {sequence.map(({ key, role, data, width, entering }) => (
               <div key={key} style={{ width }} className="shrink-0">
-                <Card data={data} role={role} />
+                <Card data={data} role={role} entering={entering} />
               </div>
             ))}
           </div>
