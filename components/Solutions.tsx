@@ -5,6 +5,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+/* ========= 1) REGLAGES SIMPLES ICI ========= */
+const TUNE = {
+  imgHeight: { base: 340, sm: 380, lg: 420 }, // hauteur du bloc image (ne touche pas si c'est bon)
+  center:    { scale: 1.64, shiftPct: 3.4, pb: 84 }, // taille, remontée en %, réserve bas (px)
+  side:      { scale: 1.56, shiftPct: 2.6, pb: 84 },
+};
+/* =========================================== */
+
 type CardDef = {
   slug: string;
   name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
@@ -33,7 +41,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile (types simplifiés pour éviter les erreurs TS)
+  // Swipe mobile (types simplifiés pour éviter les frictions TS)
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -48,72 +56,78 @@ export default function Solutions() {
   /* ===== Styles par rôle ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
-      'group relative rounded-2xl ring-1 transition ' +
-      'outline-none focus:outline-none bg-[#0b0b0b] overflow-hidden';
+      'group relative rounded-2xl ring-1 transition outline-none focus:outline-none ' +
+      'bg-[#0b0b0b] overflow-hidden';
     const anim = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]';
 
     if (role === 'center') {
       return base + ' ' + anim +
         ' ring-white/15 hover:ring-[rgba(212,175,55,0.50)] ' +
-        ' hover:shadow-[0_0_120px_rgba(212,175,55,0.28)] ' +
-        ' scale-100 opacity-100 z-[2]';
+        ' hover:shadow-[0_0_120px_rgba(212,175,55,0.28)] scale-100 opacity-100 z-[2]';
     }
     const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
     return base + ' ' + anim +
-      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] ' +
-      ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] ' +
+      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] ' +
       ' scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (centre > côtés, remontée propre, aucune superposition texte) ===== */
-  const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
-    <div className={roleClass(role)} tabIndex={-1}>
-      {/* Halo doré radial au hover */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
-        style={{
-          background: 'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
-        }}
-      />
+  /* ===== Carte (taille contrôlée par TUNE) ===== */
+  const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => {
+    const isCenter = role === 'center';
+    const scale    = isCenter ? TUNE.center.scale   : TUNE.side.scale;
+    const shiftPct = isCenter ? TUNE.center.shiftPct: TUNE.side.shiftPct;
+    const pbPx     = isCenter ? TUNE.center.pb      : TUNE.side.pb;
 
-      {/* Zone image : hauteur conservée */}
-      <div className="relative h-[340px] sm:h-[380px] lg:h-[420px] bg-black">
-        {/* Réserve bas = 96px/112px (protège la zone texte) */}
-        <div className="absolute inset-0 pt-0 pb-24 md:pb-28">
-          <Image
-            src={data.image}
-            alt={data.name}
-            fill
-            priority={role === 'center'}
-            sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
-            className={[
-              'object-contain object-bottom select-none pointer-events-none transform transition-transform duration-300',
-              // Centre plus grand et plus haut, côtés grands et symétriques
-              role === 'center'
-                ? 'scale-150 -translate-y-4'
-                : 'scale-125 -translate-y-3',
-            ].join(' ')}
+    return (
+      <div className={roleClass(role)} tabIndex={-1}>
+        {/* Halo doré radial au hover */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
+          style={{
+            background: 'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
+          }}
+        />
+
+        {/* Zone image : hauteur conservée (tu peux changer ces 3 nombres si tu veux) */}
+        <div
+          className={`relative bg-black h-[${TUNE.imgHeight.base}px] sm:h-[${TUNE.imgHeight.sm}px] lg:h-[${TUNE.imgHeight.lg}px]`}
+        >
+          {/* Réserve bas = pbPx, et image remontée via shiftPct, sans toucher à la hauteur */}
+          <div className="absolute inset-0 pt-0" style={{ paddingBottom: pbPx }}>
+            <Image
+              src={data.image}
+              alt={data.name}
+              fill
+              priority={isCenter}
+              sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
+              className="object-contain object-bottom select-none pointer-events-none origin-bottom transition-transform duration-300"
+              style={{ transform: `translateY(-${shiftPct}%) scale(${scale})` }}
+            />
+          </div>
+
+          {/* Gradient = même hauteur que la réserve bas */}
+          <div
+            className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/70"
+            aria-hidden
+            style={{ height: pbPx }}
           />
         </div>
 
-        {/* Gradient = même hauteur que la réserve bas */}
-        <div className="absolute inset-x-0 bottom-0 h-24 md:h-28 bg-gradient-to-b from-transparent to-black/70" aria-hidden />
-      </div>
+        {/* Texte */}
+        <div className="p-5">
+          <h3 className="text-white text-lg font-semibold">{data.name}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted">{data.blurb}</p>
+          <Link href={`/agents/${data.slug}`} className="mt-3 inline-block text-sm text-[color:var(--gold-1)]">
+            Voir les détails →
+          </Link>
+        </div>
 
-      {/* Texte */}
-      <div className="p-5">
-        <h3 className="text-white text-lg font-semibold">{data.name}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{data.blurb}</p>
-        <Link href={`/agents/${data.slug}`} className="mt-3 inline-block text-sm text-[color:var(--gold-1)]">
-          Voir les détails →
-        </Link>
+        {/* Assombrissement des cartes latérales */}
+        {!isCenter && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
       </div>
-
-      {/* Assombrissement des cartes latérales */}
-      {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
-    </div>
-  );
+    );
+  };
 
   const visible: { data: CardDef; role: 'left' | 'center' | 'right' }[] = [
     { data: CARDS[idxLeft], role: 'left' },
@@ -130,7 +144,7 @@ export default function Solutions() {
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           {/* LEFT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche gauche — extrémité gauche de la carte gauche */}
+            {/* Flèche gauche — extrémité gauche de la carte */}
             <button
               onClick={goPrev}
               className="hidden sm:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
@@ -143,7 +157,6 @@ export default function Solutions() {
               />
               <ChevronLeft className="relative z-10 h-6 w-6" />
             </button>
-
             <Card data={visible[0].data} role="left" />
           </div>
 
@@ -154,7 +167,7 @@ export default function Solutions() {
 
           {/* RIGHT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche droite — extrémité droite de la carte droite */}
+            {/* Flèche droite — extrémité droite de la carte */}
             <button
               onClick={goNext}
               className="hidden sm:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
@@ -167,7 +180,6 @@ export default function Solutions() {
               />
               <ChevronRight className="relative z-10 h-6 w-6" />
             </button>
-
             <Card data={visible[2].data} role="right" />
           </div>
         </div>
