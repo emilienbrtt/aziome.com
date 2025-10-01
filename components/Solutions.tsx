@@ -58,27 +58,33 @@ export default function Solutions() {
     return base + ' ' + anim + ' ring-white/10 scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (cartes plus basses + animaux plus grands) ===== */
+  /* ===== Carte (plus basse + animaux nettement plus grands) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Zone image : HAUTEUR RÉDUITE → cartes plus compactes */}
-      <div className="relative h-[420px] sm:h-[460px] lg:h-[500px] bg-black">
-        {/* Boîte de calage : on diminue les réserves pour agrandir l’animal */}
-        {/* pt = espace sous le bord haut ; pb = réserve juste au-dessus du texte */}
-        <div className="absolute inset-0 pt-1 sm:pt-1.5 px-3 pb-16 md:pb-20">
+      {/* Zone image : HAUTEUR FORTE RÉDUCTION */}
+      <div className="relative h-[360px] sm:h-[400px] lg:h-[440px] bg-black">
+        {/* Boîte de calage : quasi aucune marge haute, faible marge basse */}
+        <div className="absolute inset-0 pt-0 sm:pt-0.5 pb-14 md:pb-16">
           <Image
             src={data.image}
             alt={data.name}
             fill
             priority={role === 'center'}
             sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
-            className="object-contain object-bottom select-none pointer-events-none"
+            className={[
+              'object-contain object-bottom select-none pointer-events-none',
+              'transition-transform duration-300',
+              // Centre = très grand, côtés = grand
+              role === 'center'
+                ? 'scale-[1.36] -translate-y-[1%]'
+                : 'scale-[1.22] -translate-y-[0.5%]',
+            ].join(' ')}
           />
         </div>
 
         {/* Gradient bas aligné avec la réserve (pb) */}
         <div
-          className="absolute inset-x-0 bottom-0 h-16 md:h-20 bg-gradient-to-b from-transparent to-black/70"
+          className="absolute inset-x-0 bottom-0 h-14 md:h-16 bg-gradient-to-b from-transparent to-black/70"
           aria-hidden
         />
       </div>
