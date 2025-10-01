@@ -5,17 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ========= Réglages rapides =========
-   - Augmente "shiftPct" => remonte l'image
-   - Diminue "shiftPct"  => descend l'image
-   - "scale" = taille (1.60 = 160%)
-   - "pb" = marge (px) au-dessus du texte (le gradient suit)
-*/
+/* ========= 1) REGLAGES SIMPLES ICI ========= */
 const TUNE = {
-  center: { scale: 1.64, shiftPct: 2.2, pb: 84 }, // ← centre un peu plus bas qu'avant
-  side:   { scale: 1.56, shiftPct: 1.6, pb: 84 }, // ← côtés un peu plus bas qu'avant
+  imgHeight: { base: 340, sm: 380, lg: 420 }, // hauteur du bloc image (ne touche pas si c'est bon)
+  center:    { scale: 1.64, shiftPct: 3.4, pb: 84 }, // taille, remontée en %, réserve bas (px)
+  side:      { scale: 1.56, shiftPct: 2.6, pb: 84 },
 };
-/* =================================== */
+/* =========================================== */
 
 type CardDef = {
   slug: string;
@@ -45,7 +41,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile (types simplifiés)
+  // Swipe mobile (types simplifiés pour éviter les frictions TS)
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -71,14 +67,16 @@ export default function Solutions() {
     }
     const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
     return base + ' ' + anim +
-      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] ' +
-      ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] scale-[0.95] opacity-90 ' + shift;
+      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] ' +
+      ' scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (position & taille pilotées par TUNE) ===== */
+  /* ===== Carte (taille contrôlée par TUNE) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => {
     const isCenter = role === 'center';
-    const { scale, shiftPct, pb } = isCenter ? TUNE.center : TUNE.side;
+    const scale    = isCenter ? TUNE.center.scale   : TUNE.side.scale;
+    const shiftPct = isCenter ? TUNE.center.shiftPct: TUNE.side.shiftPct;
+    const pbPx     = isCenter ? TUNE.center.pb      : TUNE.side.pb;
 
     return (
       <div className={roleClass(role)} tabIndex={-1}>
@@ -91,10 +89,12 @@ export default function Solutions() {
           }}
         />
 
-        {/* Zone image : hauteur conservée par classes statiques (build-safe) */}
-        <div className="relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]">
-          {/* Réserve bas en px + translation en % */}
-          <div className="absolute inset-0 pt-0" style={{ paddingBottom: pb }}>
+        {/* Zone image : hauteur conservée (tu peux changer ces 3 nombres si tu veux) */}
+        <div
+          className={`relative bg-black h-[${TUNE.imgHeight.base}px] sm:h-[${TUNE.imgHeight.sm}px] lg:h-[${TUNE.imgHeight.lg}px]`}
+        >
+          {/* Réserve bas = pbPx, et image remontée via shiftPct, sans toucher à la hauteur */}
+          <div className="absolute inset-0 pt-0" style={{ paddingBottom: pbPx }}>
             <Image
               src={data.image}
               alt={data.name}
@@ -110,7 +110,7 @@ export default function Solutions() {
           <div
             className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/70"
             aria-hidden
-            style={{ height: pb }}
+            style={{ height: pbPx }}
           />
         </div>
 
