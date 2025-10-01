@@ -6,15 +6,16 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ===== Réglages =====
-   ⚠️ Desktop ne change pas. Mobile a ses réglages séparés.
+   Desktop ne bouge pas. Mobile : on descend le perso (offsetY).
 */
 const TUNE_DESKTOP = {
   center: { scale: 1.62, offsetY: 6,  pb: 84 },
   side:   { scale: 1.52, offsetY: 4,  pb: 84 },
 };
 const TUNE_MOBILE = {
-  // scale = taille, offsetY = décalage vertical (px, + = plus bas), pb = marge basse (px), pt = marge haut (px)
-  center: { scale: 1.35, offsetY: 0, pb: 88, pt: 12 }, // pt évite la tête coupée, sans toucher au desktop
+  // scale = taille, offsetY = déplacement vertical (px, + = vers le BAS)
+  // pb = marge basse au-dessus du texte ; pt = marge haut (évite tête coupée)
+  center: { scale: 1.35, offsetY: 24, pb: 88, pt: 12 }, // ← perso plus BAS
 };
 
 type CardDef = {
@@ -57,7 +58,7 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  /* ===== Styles par rôle (DESKTOP — inchangé) ===== */
+  /* ===== Styles cartes (desktop inchangé) ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
       'group relative rounded-2xl ring-1 transition outline-none focus:outline-none ' +
@@ -75,7 +76,7 @@ export default function Solutions() {
       ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte réutilisable (utilisée pour desktop & mobile) ===== */
+  /* ===== Carte réutilisable ===== */
   function Card({
     data,
     role,
@@ -101,7 +102,6 @@ export default function Solutions() {
 
         {/* Bloc image : hauteur fixe (stable build) */}
         <div className="relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]">
-          {/* pt ajoute de l'air en haut sur mobile pour éviter la tête coupée */}
           <div
             className="absolute inset-0"
             style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}
@@ -119,7 +119,6 @@ export default function Solutions() {
               }}
             />
           </div>
-
           {/* Gradient = même hauteur que la réserve bas */}
           <div
             className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/70"
@@ -137,7 +136,7 @@ export default function Solutions() {
           </Link>
         </div>
 
-        {/* Assombrissement latéral quand ce n'est pas le centre */}
+        {/* Assombrissement des cartes latérales */}
         {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
       </div>
     );
@@ -195,6 +194,7 @@ export default function Solutions() {
                      hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
                      flex items-center justify-center"
           aria-label="Précédent"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
@@ -204,11 +204,12 @@ export default function Solutions() {
                      hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
                      flex items-center justify-center"
           aria-label="Suivant"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes (plus aérées, sans cadre lourd) */}
+        {/* Vignettes : mêmes codes visuels que le site (coins arrondis, contour blanc) */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
@@ -218,19 +219,19 @@ export default function Solutions() {
                   <button
                     onClick={() => setCurrent(i)}
                     className={[
-                      // bouton circulaire, fond transparent, anneau discret
-                      'h-12 w-12 rounded-full flex items-center justify-center ring-1 transition',
+                      'h-12 w-12 rounded-2xl flex items-center justify-center ring-1 transition outline-none focus:outline-none focus-visible:outline-none',
                       active
-                        ? 'ring-[rgba(212,175,55,0.65)] shadow-[0_0_24px_rgba(212,175,55,0.30)] bg-black/20'
-                        : 'ring-white/12 hover:ring-white/25 bg-transparent'
+                        ? 'ring-[rgba(212,175,55,0.65)] shadow-[0_0_22px_rgba(212,175,55,0.25)] bg-black/30'
+                        : 'ring-white/18 hover:ring-white/28 bg-black/10'
                     ].join(' ')}
                     aria-label={c.name}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <Image
                       src={c.image}
                       alt={c.name}
-                      width={36}
-                      height={36}
+                      width={34}
+                      height={34}
                       className="object-contain"
                     />
                   </button>
