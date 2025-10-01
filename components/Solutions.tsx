@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type TouchEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,11 +13,11 @@ type CardDef = {
 };
 
 const CARDS: CardDef[] = [
-  { slug: 'max',   name: 'Max',   image: '/agents/max.png',   blurb: "Relance les clients au bon moment et récupère des ventes perdues." },
-  { slug: 'lea',   name: 'Léa',   image: '/agents/lea.png',   blurb: "Répond vite, suit les commandes et passe à l’humain si besoin." },
-  { slug: 'jules', name: 'Jules', image: '/agents/jules.png', blurb: "Réunit vos chiffres et vous alerte quand quelque chose cloche." },
-  { slug: 'mia',   name: 'Mia',   image: '/agents/mia.png',   blurb: "Accueil instantané : pose les bonnes questions et oriente bien." },
-  { slug: 'chris', name: 'Chris', image: '/agents/chris.png', blurb: "Gère les demandes internes et la paperasse sans retard." },
+  { slug: 'max',   name: 'Max',   image: '/agents/max.png',   blurb: 'Relance les clients au bon moment et récupère des ventes perdues.' },
+  { slug: 'lea',   name: 'Léa',   image: '/agents/lea.png',   blurb: 'Répond vite, suit les commandes et passe à l’humain si besoin.' },
+  { slug: 'jules', name: 'Jules', image: '/agents/jules.png', blurb: 'Réunit vos chiffres et vous alerte quand quelque chose cloche.' },
+  { slug: 'mia',   name: 'Mia',   image: '/agents/mia.png',   blurb: 'Accueil instantané : pose les bonnes questions et oriente bien.' },
+  { slug: 'chris', name: 'Chris', image: '/agents/chris.png', blurb: 'Gère les demandes internes et la paperasse sans retard.' },
 ];
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
@@ -35,8 +35,8 @@ export default function Solutions() {
 
   // Swipe mobile
   const touchStartX = useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => (touchStartX.current = e.touches[0].clientX);
-  const onTouchEnd = (e: React.TouchEvent) => {
+  const onTouchStart = (e: TouchEvent) => (touchStartX.current = e.touches[0].clientX);
+  const onTouchEnd = (e: TouchEvent) => {
     if (touchStartX.current == null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
@@ -48,70 +48,71 @@ export default function Solutions() {
   /* ===== Styles par rôle ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
-      'relative rounded-2xl border border-white/8 bg-[#0b0b0b] transition ' +
-      'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
-      'outline-none focus:outline-none focus-visible:outline-none';
+      // Bordure blanche ultra discrète -> ring (évite les décalages du layout)
+      'relative rounded-2xl ring-1 transition ' +
+      'outline-none focus:outline-none focus-visible:outline-none ' +
+      'bg-[#0b0b0b] overflow-hidden';
 
-    const anim = 'duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity,filter';
+    const anim = 'duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity';
 
     if (role === 'center') {
-      return base + ' ' + anim + ' scale-100 opacity-100 z-[2]';
+      return (
+        base +
+        ' ' +
+        anim +
+        // ring plus visible au centre
+        ' ring-white/15 scale-100 opacity-100 z-[2]'
+      );
     }
-    if (role === 'left') {
-      return base + ' ' + anim + ' scale-[0.90] opacity-85 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
-    }
-    return base + ' ' + anim + ' scale-[0.90] opacity-85 translate-x-2 md:translate-x-3 lg:translate-x-4';
+    // cartes latérales plus petites et légèrement décalées
+    const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
+    return base + ' ' + anim + ' ring-white/10 scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte : visuel plus grand + assombrissement intégral des latérales ===== */
+  /* ===== Carte ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Contenu clippé par les coins arrondis */}
-      <div className="rounded-[inherit] overflow-hidden">
-        {/* Zone image */}
-        <div className="relative aspect-[4/5] w-full bg-black">
-          <Image
-            src={data.image}
-            alt={data.name}
-            fill
-            priority
-            sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
-            className={[
-              'object-contain select-none transition-transform duration-300',
-              // On remonte légèrement l’ancrage pour que les pieds restent clairement au-dessus du texte :
-              //  - centre : visuel le plus grand
-              //  - côtés  : un peu plus petit
-              role === 'center'
-                ? 'scale-[1.38] sm:scale-[1.40] md:scale-[1.42] lg:scale-[1.44] object-[center_92%]'
-                : 'scale-[1.24] sm:scale-[1.26] md:scale-[1.28] lg:scale-[1.30] object-[center_92%]',
-            ].join(' ')}
-          />
+      {/* Zone image : occupe la carte au max, ancrée en bas pour garder les pieds visibles sans empiéter */}
+      <div className="relative aspect-[4/5] w-full bg-black">
+        <Image
+          src={data.image}
+          alt={data.name}
+          fill
+          priority={role === 'center'}
+          sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
+          className={[
+            'object-contain object-bottom select-none pointer-events-none',
+            'transition-transform duration-300',
+            role === 'center'
+              ? 'scale-[1.42]'
+              : 'scale-[1.28]',
+          ].join(' ')}
+        />
 
-          {/* Dégradé pour la lecture du texte */}
-          <div
-            className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '56%' }}
-          />
-        </div>
+        {/* Gradient bas pour détacher le texte : empêche les pieds de toucher la zone texte */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-28 md:h-32 bg-gradient-to-b from-transparent to-black/70"
+          aria-hidden
+        />
+      </div>
 
-        {/* Texte */}
-        <div className="p-5">
-          <h3 className="text-xl font-semibold">{data.name}</h3>
-          <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : ' line-clamp-1')}>
-            {data.blurb}
-          </p>
-          <Link
-            href={`/agents/${data.slug}`}
-            className="mt-3 inline-block text-sm text-[color:var(--gold-1)] outline-none focus:outline-none focus-visible:outline-none"
-          >
-            Voir les détails →
-          </Link>
-        </div>
+      {/* Texte en dessous, bien séparé */}
+      <div className="p-5">
+        <h3 className="text-white text-lg font-semibold">{data.name}</h3>
+        <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : 'line-clamp-1')}>
+          {data.blurb}
+        </p>
+        <Link
+          href={`/agents/${data.slug}`}
+          className="mt-3 inline-block text-sm text-[color:var(--gold-1)]"
+        >
+          Voir les détails →
+        </Link>
       </div>
 
       {/* Assombrissement intégral des cartes latérales (image + texte) */}
       {role !== 'center' && (
-        <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-black/22" />
+        <div className="pointer-events-none absolute inset-0 bg-black/55" aria-hidden />
       )}
     </div>
   );
@@ -132,13 +133,13 @@ export default function Solutions() {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {/* Flèches — un peu plus “sur l’image” */}
+        {/* Flèches */}
         <button
           onClick={goPrev}
           className="hidden sm:flex items-center justify-center
-                     absolute left-[6%] md:left-[7%] top-[42%] -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full border border-white/15 bg-white/6
-                     hover:bg-white/12 backdrop-blur transition"
+                   absolute left-[6%] md:left-[7%] top-[42%] -translate-y-1/2 z-10
+                   h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+                   hover:bg-white/10 backdrop-blur transition"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
@@ -147,15 +148,15 @@ export default function Solutions() {
         <button
           onClick={goNext}
           className="hidden sm:flex items-center justify-center
-                     absolute right-[6%] md:right-[7%] top-[42%] -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full border border-white/15 bg-white/6
-                     hover:bg-white/12 backdrop-blur transition"
+                   absolute right-[6%] md:right-[7%] top-[42%] -translate-y-1/2 z-10
+                   h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+                   hover:bg-white/10 backdrop-blur transition"
           aria-label="Suivant"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* 3 cartes visibles (mêmes largeurs qu’avant) */}
+        {/* Trois cartes visibles */}
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
             <Card data={visible[0].data} role="left" />
