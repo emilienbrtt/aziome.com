@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, type TouchEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -22,18 +22,54 @@ const CARDS: CardDef[] = [
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
+type Role = 'left' | 'center' | 'right';
+
 export default function Solutions() {
   const [current, setCurrent] = useState(0);
   const n = CARDS.length;
 
-  const idxLeft   = mod(current - 1, n);
-  const idxCenter = current;
-  const idxRight  = mod(current + 1, n);
+  // ——— Slots visibles : [left, center, right]
+  const computeSlots = (c: number) => [mod(c - 1, n), c, mod(c + 1, n)];
+  const [slots, setSlots] = useState<number[]>(computeSlots(0));
 
-  const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
-  const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
+  // ——— Rôles appliqués aux 3 cartes (pour l’animation)
+  const [roles, setRoles] = useState<Role[]>(['left', 'center', 'right']);
+  const [animating, setAnimating] = useState(false);
 
-  // Swipe mobile
+  const duration = 420; // ms (doit matcher la classe duration-300/400 ci-dessous)
+
+  const animateTo = useCallback(
+    (dir: 'next' | 'prev') => {
+      if (animating) return;
+      setAnimating(true);
+
+      // 1) On déclenche l’animation en faisant "tourner" les rôles
+      setRoles((prev) =>
+        dir === 'next'
+          ? ([prev[0] === 'left' ? 'center' : prev[0] === 'center' ? 'right' : 'left',
+              prev[1] === 'left' ? 'center' : prev[1] === 'center' ? 'right' : 'left',
+              prev[2] === 'left' ? 'center' : prev[2] === 'center' ? 'right' : 'left'] as Role[])
+          : ([prev[0] === 'left' ? 'right' : prev[0] === 'center' ? 'left' : 'center',
+              prev[1] === 'left' ? 'right' : prev[1] === 'center' ? 'left' : 'center',
+              prev[2] === 'left' ? 'right' : prev[2] === 'center' ? 'left' : 'center'] as Role[])
+      );
+
+      // 2) En fin d’animation, on met à jour l’index central et on réinitialise
+      setTimeout(() => {
+        const newCurrent = dir === 'next' ? mod(current + 1, n) : mod(current - 1, n);
+        setCurrent(newCurrent);
+        setSlots(computeSlots(newCurrent));
+        setRoles(['left', 'center', 'right']); // prêt pour la prochaine rotation
+        setAnimating(false);
+      }, duration);
+    },
+    [animating, current, n]
+  );
+
+  const goNext = useCallback(() => animateTo('next'), [animateTo]);
+  const goPrev = useCallback(() => animateTo('prev'), [animateTo]);
+
+  // ——— Swipe mobile
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: TouchEvent) => (touchStartX.current = e.touches[0].clientX);
   const onTouchEnd = (e: TouchEvent) => {
@@ -45,35 +81,36 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  /* ===== Styles par rôle ===== */
-  const roleClass = (role: 'left' | 'center' | 'right') => {
-    const base =
-      // Bordure blanche ultra discrète -> ring (évite les décalages du layout)
-      'relative rounded-2xl ring-1 transition ' +
-      'outline-none focus:outline-none focus-visible:outline-none ' +
-      'bg-[#0b0b0b] overflow-hidden';
+  /* ===== Styles ===== */
 
-    const anim = 'duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity';
+  // Bordure blanche très discrète (ring) + hiérarchie 3D
+  const roleClass = (role: Role) => {
+    const base =
+      'relative rounded-2xl ring-1 bg-[#0b0b0b] overflow-hidden ' +
+      'outline-none focus:outline-none will-change-transform,opacity ' +
+      'transition-[transform,opacity,filter] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]';
 
     if (role === 'center') {
+      return base + ' ring-white/15 scale-100 opacity-100 z-[2] translate-x-0 rotate-y-0';
+    }
+    if (role === 'left') {
       return (
         base +
-        ' ' +
-        anim +
-        // ring plus visible au centre
-        ' ring-white/15 scale-100 opacity-100 z-[2]'
+        ' ring-white/10 scale-[0.94] opacity-90 -translate-x-6 md:-translate-x-8 ' +
+        '[transform:rotateY(14deg)]'
       );
     }
-    // cartes latérales plus petites et légèrement décalées
-    const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
-    return base + ' ' + anim + ' ring-white/10 scale-[0.95] opacity-90 ' + shift;
+    return (
+      base +
+      ' ring-white/10 scale-[0.94] opacity-90 translate-x-6 md:translate-x-8 ' +
+      '[transform:rotateY(-14deg)]'
+    );
   };
 
-  /* ===== Carte ===== */
-  const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
+  const Card = ({ data, role }: { data: CardDef; role: Role }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Zone image : occupe la carte au max, ancrée en bas pour garder les pieds visibles sans empiéter */}
-      <div className="relative aspect-[4/5] w-full bg-black">
+      {/* Zone image : hauteur fixe + insets → jamais de jambes coupées */}
+      <div className="relative h-[520px] sm:h-[560px] lg:h-[600px] bg-black px-4 pt-4 pb-16 sm:pb-20">
         <Image
           src={data.image}
           alt={data.name}
@@ -83,20 +120,21 @@ export default function Solutions() {
           className={[
             'object-contain object-bottom select-none pointer-events-none',
             'transition-transform duration-300',
+            // Centre plus grand et légèrement remonté
             role === 'center'
-              ? 'scale-[1.42]'
-              : 'scale-[1.28]',
+              ? 'scale-[1.18] -translate-y-[4%]'
+              : 'scale-[1.08] -translate-y-[2%]',
           ].join(' ')}
         />
 
-        {/* Gradient bas pour détacher le texte : empêche les pieds de toucher la zone texte */}
+        {/* Petit dégradé discret (plus bas et moins haut) */}
         <div
-          className="absolute inset-x-0 bottom-0 h-28 md:h-32 bg-gradient-to-b from-transparent to-black/70"
+          className="absolute inset-x-0 bottom-0 h-16 sm:h-20 bg-gradient-to-b from-transparent to-black/70"
           aria-hidden
         />
       </div>
 
-      {/* Texte en dessous, bien séparé */}
+      {/* Texte bien séparé */}
       <div className="p-5">
         <h3 className="text-white text-lg font-semibold">{data.name}</h3>
         <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : 'line-clamp-1')}>
@@ -110,18 +148,10 @@ export default function Solutions() {
         </Link>
       </div>
 
-      {/* Assombrissement intégral des cartes latérales (image + texte) */}
-      {role !== 'center' && (
-        <div className="pointer-events-none absolute inset-0 bg-black/55" aria-hidden />
-      )}
+      {/* Assombrissement des cartes latérales (image + texte) */}
+      {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/55" aria-hidden />}
     </div>
   );
-
-  const visible: { data: CardDef; role: 'left' | 'center' | 'right' }[] = [
-    { data: CARDS[idxLeft], role: 'left' },
-    { data: CARDS[idxCenter], role: 'center' },
-    { data: CARDS[idxRight], role: 'right' },
-  ];
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
@@ -132,6 +162,7 @@ export default function Solutions() {
         className="relative py-8 px-2 md:px-4"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        style={{ perspective: '1200px' }} // effet roue 3D
       >
         {/* Flèches */}
         <button
@@ -156,16 +187,17 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Trois cartes visibles */}
+        {/* 3 cartes visibles */}
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
+          {/* left / center / right -> contenus issus de slots */}
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            <Card data={visible[0].data} role="left" />
+            <Card data={CARDS[slots[0]]} role={roles[0]} />
           </div>
           <div className="w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]">
-            <Card data={visible[1].data} role="center" />
+            <Card data={CARDS[slots[1]]} role={roles[1]} />
           </div>
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            <Card data={visible[2].data} role="right" />
+            <Card data={CARDS[slots[2]]} role={roles[2]} />
           </div>
         </div>
 
