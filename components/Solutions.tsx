@@ -1,4 +1,4 @@
-'use client';
+`'use client';
 
 import { useCallback, useRef, useState, type TouchEvent } from 'react';
 import Image from 'next/image';
@@ -66,7 +66,7 @@ export default function Solutions() {
       ' scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte : pas d’empiètement + flèches dans les cartes latérales ===== */
+  /* ===== Carte (anti-débordement + tailles finales) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
       {/* Halo doré subtil derrière la carte */}
@@ -80,10 +80,10 @@ export default function Solutions() {
         }}
       />
 
-      {/* Zone image (cartes compactes) */}
+      {/* Zone image (hauteur compacte) */}
       <div className="relative h-[360px] sm:h-[400px] lg:h-[440px] bg-black">
-        {/* Réserve bas augmentée + légère remontée de l’image → plus AU-DESSUS du texte */}
-        <div className="absolute inset-0 pt-0 pb-16 md:pb-[72px]">
+        {/* Réserve bas + remontée → pieds au-dessus du texte, pas un pixel de plus */}
+        <div className="absolute inset-0 pt-0 pb-[84px]">
           <Image
             src={data.image}
             alt={data.name}
@@ -94,15 +94,15 @@ export default function Solutions() {
               'object-contain object-bottom select-none pointer-events-none',
               'transition-transform duration-300',
               role === 'center'
-                ? 'scale-[1.60] -translate-y-[2%]'
-                : 'scale-[1.44] -translate-y-[1.2%]',
+                ? 'scale-[1.62] -translate-y-[2.4%]'  // plus grand mais au-dessus de la ligne rouge
+                : 'scale-[1.50] -translate-y-[1.6%]', // côtés plus grands et symétriques
             ].join(' ')}
           />
         </div>
 
-        {/* Gradient = même hauteur que la réserve bas */}
+        {/* Gradient = égal à la réserve bas (84px) */}
         <div
-          className="absolute inset-x-0 bottom-0 h-16 md:h-[72px] bg-gradient-to-b from-transparent to-black/70"
+          className="absolute inset-x-0 bottom-0 h-[84px] bg-gradient-to-b from-transparent to-black/70"
           aria-hidden
         />
       </div>
@@ -135,15 +135,14 @@ export default function Solutions() {
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
       <div className="relative py-8 px-2 md:px-4" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {/* Trois cartes visibles */}
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           {/* LEFT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche gauche : replacée DANS la carte gauche, au milieu */}
+            {/* Flèche gauche : collée à l'extrémité GAUCHE de la carte gauche */}
             <button
               onClick={goPrev}
               className="group/arrow hidden sm:flex items-center justify-center
-                         absolute right-3 top-1/2 -translate-y-1/2 z-30
+                         absolute left-2 top-1/2 -translate-y-1/2 z-30
                          h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                          hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10
                          hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
@@ -169,11 +168,11 @@ export default function Solutions() {
 
           {/* RIGHT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche droite : replacée DANS la carte droite, au milieu */}
+            {/* Flèche droite : collée à l'extrémité DROITE de la carte droite */}
             <button
               onClick={goNext}
               className="group/arrow hidden sm:flex items-center justify-center
-                         absolute left-3 top-1/2 -translate-y-1/2 z-30
+                         absolute right-2 top-1/2 -translate-y-1/2 z-30
                          h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                          hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10
                          hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
