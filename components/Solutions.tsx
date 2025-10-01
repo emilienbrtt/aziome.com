@@ -6,15 +6,15 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ===== Réglages =====
-   ⚠️ Desktop ne change pas.
-   Mobile a ses réglages séparés pour éviter l’effet “ultra zoomé”.
+   ⚠️ Desktop ne change pas. Mobile a ses réglages séparés.
 */
 const TUNE_DESKTOP = {
   center: { scale: 1.62, offsetY: 6,  pb: 84 },
   side:   { scale: 1.52, offsetY: 4,  pb: 84 },
 };
 const TUNE_MOBILE = {
-  center: { scale: 1.35, offsetY: 4, pb: 88 }, // ↓ moins zoomé + un poil plus bas
+  // scale = taille, offsetY = décalage vertical (px, + = plus bas), pb = marge basse (px), pt = marge haut (px)
+  center: { scale: 1.35, offsetY: 0, pb: 88, pt: 12 }, // pt évite la tête coupée, sans toucher au desktop
 };
 
 type CardDef = {
@@ -45,7 +45,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile (souple)
+  // Swipe mobile
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -75,7 +75,7 @@ export default function Solutions() {
       ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte réutilisable ===== */
+  /* ===== Carte réutilisable (utilisée pour desktop & mobile) ===== */
   function Card({
     data,
     role,
@@ -83,7 +83,7 @@ export default function Solutions() {
   }: {
     data: CardDef;
     role: 'left' | 'center' | 'right';
-    cfg: { scale: number; offsetY: number; pb: number };
+    cfg: { scale: number; offsetY: number; pb: number; pt?: number };
   }) {
     const isCenter = role === 'center';
 
@@ -101,7 +101,11 @@ export default function Solutions() {
 
         {/* Bloc image : hauteur fixe (stable build) */}
         <div className="relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]">
-          <div className="absolute inset-0 pt-0" style={{ paddingBottom: cfg.pb }}>
+          {/* pt ajoute de l'air en haut sur mobile pour éviter la tête coupée */}
+          <div
+            className="absolute inset-0"
+            style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}
+          >
             <Image
               src={data.image}
               alt={data.name}
@@ -115,6 +119,8 @@ export default function Solutions() {
               }}
             />
           </div>
+
+          {/* Gradient = même hauteur que la réserve bas */}
           <div
             className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/70"
             aria-hidden
@@ -131,17 +137,17 @@ export default function Solutions() {
           </Link>
         </div>
 
-        {/* Assombrissement latéral (uniquement si ce n’est pas le centre) */}
-        {!isCenter && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
+        {/* Assombrissement latéral quand ce n'est pas le centre */}
+        {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
       </div>
     );
   }
 
   /* ====== Rendu ====== */
   const visible = [
-    { data: CARDS[mod(current - 1, n)], role: 'left' as const },
-    { data: CARDS[current],             role: 'center' as const },
-    { data: CARDS[mod(current + 1, n)], role: 'right' as const },
+    { data: CARDS[idxLeft],   role: 'left' as const },
+    { data: CARDS[idxCenter], role: 'center' as const },
+    { data: CARDS[idxRight],  role: 'right' as const },
   ];
 
   return (
@@ -149,51 +155,43 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* ====== DESKTOP (>= md) : 3 cartes — INCHANGÉ ====== */}
+      {/* ===== Desktop (>= md) : INCHANGÉ — 3 cartes ===== */}
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
             onClick={goPrev}
-            className="hidden sm:flex items-center justify-center
-                       absolute left-1 top-1/2 -translate-y-1/2 z-30
-                       h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
-                       hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
+            className="hidden sm:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
             aria-label="Précédent"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
-          <Card data={visible[0].data} role="left"  cfg={TUNE_DESKTOP.side} />
+          <Card data={visible[0].data} role={visible[0].role} cfg={TUNE_DESKTOP.side} />
         </div>
 
         <div className="w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]">
-          <Card data={visible[1].data} role="center" cfg={TUNE_DESKTOP.center} />
+          <Card data={visible[1].data} role={visible[1].role} cfg={TUNE_DESKTOP.center} />
         </div>
 
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
             onClick={goNext}
-            className="hidden sm:flex items-center justify-center
-                       absolute right-1 top-1/2 -translate-y-1/2 z-30
-                       h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
-                       hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
+            className="hidden sm:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
             aria-label="Suivant"
           >
             <ChevronRight className="h-6 w-6" />
           </button>
-          <Card data={visible[2].data} role="right" cfg={TUNE_DESKTOP.side} />
+          <Card data={visible[2].data} role={visible[2].role} cfg={TUNE_DESKTOP.side} />
         </div>
       </div>
 
-      {/* ====== MOBILE (< md) : 1 grande carte + flèches + mini-menu ====== */}
+      {/* ===== Mobile (< md) : 1 carte + flèches + vignettes propres ===== */}
       <div className="md:hidden relative px-2" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {/* une seule carte (celle du centre) */}
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} />
 
-        {/* flèches parfaitement centrées dans les cercles */}
+        {/* Flèches — icône parfaitement centrée */}
         <button
           onClick={goPrev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-30
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
                      flex items-center justify-center"
           aria-label="Précédent"
@@ -202,8 +200,7 @@ export default function Solutions() {
         </button>
         <button
           onClick={goNext}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-30
-                     h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
                      hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
                      flex items-center justify-center"
           aria-label="Suivant"
@@ -211,26 +208,29 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* mini-menu défilant (thumbnails) */}
+        {/* Vignettes (plus aérées, sans cadre lourd) */}
         <div className="mt-4">
-          <ul className="flex gap-3 overflow-x-auto no-scrollbar px-1">
+          <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
-                <li key={c.slug}>
+                <li key={c.slug} className="shrink-0">
                   <button
                     onClick={() => setCurrent(i)}
                     className={[
-                      'relative h-14 w-14 rounded-xl ring-1 bg-[#0b0b0b] flex items-center justify-center shrink-0',
-                      active ? 'ring-[rgba(212,175,55,0.55)] shadow-[0_0_40px_rgba(212,175,55,0.25)]' : 'ring-white/10'
+                      // bouton circulaire, fond transparent, anneau discret
+                      'h-12 w-12 rounded-full flex items-center justify-center ring-1 transition',
+                      active
+                        ? 'ring-[rgba(212,175,55,0.65)] shadow-[0_0_24px_rgba(212,175,55,0.30)] bg-black/20'
+                        : 'ring-white/12 hover:ring-white/25 bg-transparent'
                     ].join(' ')}
                     aria-label={c.name}
                   >
                     <Image
                       src={c.image}
                       alt={c.name}
-                      width={48}
-                      height={48}
+                      width={36}
+                      height={36}
                       className="object-contain"
                     />
                   </button>
