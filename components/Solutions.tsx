@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -22,26 +22,42 @@ const CARDS: CardDef[] = [
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
-// paramètres d’anim
-const DURATION = 720; // ms (plus lent & fluide)
+// Anim propre et fluide
+const DURATION = 740; // ms
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const GAP = 20;       // px entre cartes
 
 export default function Solutions() {
-  const [current, setCurrent] = useState(0);         // index logique au centre
-  const [dir, setDir] = useState<0 | 1 | -1>(0);     // 1=next, -1=prev, 0=repos
-  const [anim, setAnim] = useState(false);           // animation en cours ?
-  const [noTransition, setNoTransition] = useState(false); // pour reset sans flash
-  const [edgeLive, setEdgeLive] = useState(false);   // pour l’apparition progressive de la carte entrante
+  const [current, setCurrent] = useState(0);
+  const [dir, setDir] = useState<0 | 1 | -1>(0);        // 1 = next, -1 = prev
+  const [anim, setAnim] = useState(false);
+  const [noTransition, setNoTransition] = useState(false);
+  const [edgeLive, setEdgeLive] = useState(false);      // apparition progressive edge
 
   const n = CARDS.length;
 
-  const idxLeft    = useMemo(() => mod(current - 1, n), [current, n]);
-  const idxCenter  = useMemo(() => mod(current, n), [current, n]);
-  const idxRight   = useMemo(() => mod(current + 1, n), [current, n]);
-  const idxFar     = useMemo(
-    () => (dir === 1 ? mod(current + 2, n) : mod(current - 2, n)),
-    [current, n, dir]
-  );
+  const idxLeft   = useMemo(() => mod(current - 1, n), [current, n]);
+  const idxCenter = useMemo(() => mod(current, n), [current, n]);
+  const idxRight  = useMemo(() => mod(current + 1, n), [current, n]);
+  const idxFar    = useMemo(() => dir === 1 ? mod(current + 2, n) : mod(current - 2, n), [current, n, dir]);
+
+  // largeur de slot identique pour toutes les cartes (évite les reflows)
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [slotW, setSlotW] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      // 3 slots + 2 gaps = 100% de la largeur dispo → on calcule un slot
+      const total = el.getBoundingClientRect().width;
+      const w = (total - 2 * GAP) / 3;
+      setSlotW(w);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   // swipe mobile
   const touchX = useRef<number | null>(null);
@@ -58,9 +74,8 @@ export default function Solutions() {
     if (anim) return;
     setDir(1);
     setAnim(true);
-    // monte la carte entrante depuis le bord avec opacity 0 -> 1
     setEdgeLive(false);
-    requestAnimationFrame(() => setEdgeLive(true));
+    requestAnimationFrame(() => setEdgeLive(true)); // déclenche proprement le fade/slide-in
   }, [anim]);
 
   const prev = useCallback(() => {
@@ -71,51 +86,42 @@ export default function Solutions() {
     requestAnimationFrame(() => setEdgeLive(true));
   }, [anim]);
 
-  // Fin d’animation : on met à jour l’index, on reset le track SANS transition
+  // Fin d'anim → on avance l'index, reset sans transition
   useEffect(() => {
     if (!anim) return;
     const t = setTimeout(() => {
       setCurrent(c => mod(c + dir, n));
       setDir(0);
-      setNoTransition(true);   // coupe la transition
+      setNoTransition(true);      // pas de transition pendant le reset
       setEdgeLive(false);
       setAnim(false);
-      // réactive la transition au tick suivant
-      const r = requestAnimationFrame(() => setNoTransition(false));
-      return () => cancelAnimationFrame(r);
-    }, DURATION + 20);
+      requestAnimationFrame(() => setNoTransition(false));
+    }, DURATION + 24);
     return () => clearTimeout(t);
   }, [anim, dir, n]);
 
-  /* ====== Styles contours ====== */
+  /* ================= Card ================= */
   const baseCard =
     'rounded-2xl border border-white/12 bg-[#0b0b0b] ' +
     'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
     'outline-none focus:outline-none focus-visible:outline-none ' +
     'transition-[border-color,box-shadow]';
 
-  /* ====== Carte (image + overlay latérales) ====== */
   function Card({
     data,
-    role, // 'left' | 'center' | 'right' | 'edge-left' | 'edge-right'
-    entering, // true sur la carte entrante pour fade/slide-in
+    role,        // 'left' | 'center' | 'right' | 'edge-left' | 'edge-right'
   }: {
     data: CardDef;
     role: 'left' | 'center' | 'right' | 'edge-left' | 'edge-right';
-    entering?: boolean;
   }) {
     const isCenter = role === 'center';
     const isSide = role === 'left' || role === 'right';
     const isEdge = role === 'edge-left' || role === 'edge-right';
 
-    // échelle carte (centre > latérales)
-    const cardScale = isCenter ? 1.0 : 0.92;
-    // image plus grande mais entière
-    const imgScale = isCenter ? 1.22 : 1.10; // + un petit cran
-    // assombrissement latérales
-    const shade = isCenter ? 0 : 0.18;
+    const cardScale = isCenter ? 1.02 : 0.94;     // cadre visuellement + grand au centre
+    const imgScale  = isCenter ? 1.24 : 1.12;     // image plus grande mais jamais coupée
+    const shade     = isCenter ? 0 : 0.22;        // latérales plus sombres
 
-    // apparition progressive de la carte entrante
     const enterOffset = role === 'edge-right' ? 40 : role === 'edge-left' ? -40 : 0;
 
     return (
@@ -123,13 +129,13 @@ export default function Solutions() {
         className={baseCard}
         style={{
           transform: `scale(${cardScale})`,
-          transition: `${noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`}`,
+          transition: noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`,
           opacity: isEdge ? (edgeLive ? 1 : 0) : 1,
-          // léger décalage depuis le bord pour l’edge qui arrive
           translate: isEdge ? `${edgeLive ? 0 : enterOffset}px 0` : undefined,
           transitionProperty: noTransition ? undefined : 'transform, opacity, translate',
           transitionDuration: noTransition ? undefined : `${DURATION}ms`,
           transitionTimingFunction: noTransition ? undefined : EASE,
+          willChange: 'transform, opacity',
         }}
       >
         <div className="rounded-[inherit] overflow-hidden">
@@ -143,21 +149,20 @@ export default function Solutions() {
               className="object-contain object-bottom select-none"
               style={{
                 transform: `scale(${imgScale})`,
-                transition: `${noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`}`,
+                transition: noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`,
+                willChange: 'transform',
               }}
             />
-            {/* assombrissement latérales */}
             {(isSide || isEdge) && (
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.18), rgba(0,0,0,0.18))',
+                  background: 'rgba(0,0,0,1)',
                   opacity: shade,
-                  transition: `${noTransition ? 'none' : `opacity ${DURATION}ms ${EASE}`}`,
+                  transition: noTransition ? 'none' : `opacity ${DURATION}ms ${EASE}`,
                 }}
               />
             )}
-            {/* dégradé bas vers le texte */}
             <div
               className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
               style={{ height: '58%' }}
@@ -178,65 +183,36 @@ export default function Solutions() {
     );
   }
 
-  /* ====== Composition du carrousel ======
-     On affiche 3 cartes au repos. Pendant l’anim on ajoute 1 carte “entrante”
-     (à droite si NEXT, à gauche si PREV) et on translate la piste.
-  */
-  const CARD_W = { left: '28%', center: '32%', right: '28%' };
-  const GAP = 20;
-
-  const sequence = useMemo(() => {
+  /* ============== Séquence affichée ============== */
+  const seq = useMemo(() => {
     if (dir === 1) {
-      // NEXT : [left, center, right, farRight]
+      // next : left, center, right, edge-right
       return [
-        { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
-        { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
-        { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
-        { key: `E-${idxFar}`,    role: 'edge-right' as const, data: CARDS[idxFar], width: CARD_W.right, entering: true },
+        { key: `L-${idxLeft}`,   role: 'left' as const,        data: CARDS[idxLeft]   },
+        { key: `C-${idxCenter}`, role: 'center' as const,      data: CARDS[idxCenter] },
+        { key: `R-${idxRight}`,  role: 'right' as const,       data: CARDS[idxRight]  },
+        { key: `E-${idxFar}`,    role: 'edge-right' as const,  data: CARDS[idxFar]    },
       ];
     }
     if (dir === -1) {
-      // PREV : [farLeft, left, center, right]
+      // prev : edge-left, left, center, right
       return [
-        { key: `E-${idxFar}`,    role: 'edge-left' as const, data: CARDS[idxFar], width: CARD_W.left, entering: true },
-        { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
-        { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
-        { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
+        { key: `E-${idxFar}`,    role: 'edge-left' as const,   data: CARDS[idxFar]    },
+        { key: `L-${idxLeft}`,   role: 'left' as const,        data: CARDS[idxLeft]   },
+        { key: `C-${idxCenter}`, role: 'center' as const,      data: CARDS[idxCenter] },
+        { key: `R-${idxRight}`,  role: 'right' as const,       data: CARDS[idxRight]  },
       ];
     }
-    // repos
+    // repos : left, center, right
     return [
-      { key: `L-${idxLeft}`,   role: 'left'  as const, data: CARDS[idxLeft],   width: CARD_W.left,  entering: false },
-      { key: `C-${idxCenter}`, role: 'center'as const, data: CARDS[idxCenter], width: CARD_W.center,entering: false },
-      { key: `R-${idxRight}`,  role: 'right' as const, data: CARDS[idxRight],  width: CARD_W.right, entering: false },
+      { key: `L-${idxLeft}`,   role: 'left' as const,    data: CARDS[idxLeft]   },
+      { key: `C-${idxCenter}`, role: 'center' as const,  data: CARDS[idxCenter] },
+      { key: `R-${idxRight}`,  role: 'right' as const,   data: CARDS[idxRight]  },
     ];
   }, [dir, idxLeft, idxCenter, idxRight, idxFar]);
 
-  // translation de la piste (d’une carte + gap) avec reset sans transition
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [shift, setShift] = useState(0);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const els = Array.from(track.children) as HTMLElement[];
-    if (!els.length) return;
-
-    if (dir === 1) {
-      // NEXT : se décaler de la largeur de la carte centrale
-      const centerEl = els[1]; // [left, center, right, edge-right]
-      const w = centerEl.getBoundingClientRect().width;
-      setShift(-(w + GAP));
-    } else if (dir === -1) {
-      // PREV : se décaler de la largeur de la carte gauche
-      const leftEl = els[0]; // [edge-left, left, center, right]
-      const w = leftEl.getBoundingClientRect().width;
-      setShift(w + GAP);
-    } else {
-      setShift(0);
-    }
-  }, [dir, sequence]);
+  // décalage du track : une largeur de slot + gap
+  const trackShift = dir === 1 ? -(slotW + GAP) : dir === -1 ? (slotW + GAP) : 0;
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
@@ -246,16 +222,15 @@ export default function Solutions() {
       <div className="relative py-8" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* flèches */}
         <button
-          onClick={prev}
+          onClick={() => prev()}
           className="hidden sm:flex items-center justify-center absolute left-[-14px] lg:left-[-22px] top-1/2 -translate-y-1/2 z-10
                      h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
-
         <button
-          onClick={next}
+          onClick={() => next()}
           className="hidden sm:flex items-center justify-center absolute right-[-14px] lg:right-[-22px] top-1/2 -translate-y-1/2 z-10
                      h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
           aria-label="Suivant"
@@ -263,22 +238,21 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* fenêtre (overflow visible pour le glow) */}
-        <div className="relative mx-auto max-w-full overflow-visible">
-          {/* piste coulissante */}
+        {/* fenêtre */}
+        <div ref={wrapRef} className="relative mx-auto max-w-full overflow-visible">
+          {/* piste */}
           <div
-            ref={trackRef}
-            className="mx-auto flex items-stretch justify-center"
+            className="flex items-stretch justify-center"
             style={{
               gap: `${GAP}px`,
-              transform: `translateX(${shift}px)`,
+              transform: `translateX(${trackShift}px)`,
               transition: noTransition ? 'none' : `transform ${DURATION}ms ${EASE}`,
               willChange: 'transform',
             }}
           >
-            {sequence.map(({ key, role, data, width, entering }) => (
-              <div key={key} style={{ width }} className="shrink-0">
-                <Card data={data} role={role} entering={entering} />
+            {seq.map(({ key, role, data }) => (
+              <div key={key} style={{ width: slotW || undefined }} className="shrink-0">
+                <Card data={data} role={role} />
               </div>
             ))}
           </div>
