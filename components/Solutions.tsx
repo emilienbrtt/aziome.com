@@ -58,14 +58,14 @@ export default function Solutions() {
     return base + ' ' + anim + ' ring-white/10 scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (hauteur réduite + animal agrandi) ===== */
+  /* ===== Carte (cartes plus basses + animaux plus grands) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Zone image : HAUTEUR RÉDUITE */}
-      <div className="relative h-[460px] sm:h-[500px] lg:h-[540px] bg-black">
-        {/* Boîte de calage : animal plus grand entre le haut et le bas */}
-        {/* pt ↓ ; pb ↓ -> le visuel occupe plus d’espace malgré la carte plus compacte */}
-        <div className="absolute inset-0 pt-1 sm:pt-2 px-3 pb-20 md:pb-24">
+      {/* Zone image : HAUTEUR RÉDUITE → cartes plus compactes */}
+      <div className="relative h-[420px] sm:h-[460px] lg:h-[500px] bg-black">
+        {/* Boîte de calage : on diminue les réserves pour agrandir l’animal */}
+        {/* pt = espace sous le bord haut ; pb = réserve juste au-dessus du texte */}
+        <div className="absolute inset-0 pt-1 sm:pt-1.5 px-3 pb-16 md:pb-20">
           <Image
             src={data.image}
             alt={data.name}
@@ -78,7 +78,7 @@ export default function Solutions() {
 
         {/* Gradient bas aligné avec la réserve (pb) */}
         <div
-          className="absolute inset-x-0 bottom-0 h-20 md:h-24 bg-gradient-to-b from-transparent to-black/70"
+          className="absolute inset-x-0 bottom-0 h-16 md:h-20 bg-gradient-to-b from-transparent to-black/70"
           aria-hidden
         />
       </div>
