@@ -33,6 +33,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
+  // Swipe mobile
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: React.TouchEvent) => (touchStartX.current = e.touches[0].clientX);
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -44,10 +45,10 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  /* ===== Cadre : bordure très discrète + mêmes classes qu’avant ===== */
+  /* ===== Styles par rôle ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
-      'relative rounded-2xl border border-white/10 bg-[#0b0b0b] transition ' + // bordure plus “transparente”
+      'relative rounded-2xl border border-white/8 bg-[#0b0b0b] transition ' +
       'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
       'outline-none focus:outline-none focus-visible:outline-none';
 
@@ -57,17 +58,17 @@ export default function Solutions() {
       return base + ' ' + anim + ' scale-100 opacity-100 z-[2]';
     }
     if (role === 'left') {
-      return base + ' ' + anim + ' scale-[0.90] opacity-80 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
+      return base + ' ' + anim + ' scale-[0.90] opacity-85 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
     }
-    return base + ' ' + anim + ' scale-[0.90] opacity-80 translate-x-2 md:translate-x-3 lg:translate-x-4';
+    return base + ' ' + anim + ' scale-[0.90] opacity-85 translate-x-2 md:translate-x-3 lg:translate-x-4';
   };
 
-  /* ===== Carte : image plus grande (centre > latérales) + assombrissement des latérales ===== */
+  /* ===== Carte : visuel plus grand + assombrissement intégral des latérales ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Tout le contenu est “clippé” dans les coins arrondis */}
+      {/* Contenu clippé par les coins arrondis */}
       <div className="rounded-[inherit] overflow-hidden">
-        {/* Zone image (reste identique) */}
+        {/* Zone image */}
         <div className="relative aspect-[4/5] w-full bg-black">
           <Image
             src={data.image}
@@ -76,27 +77,24 @@ export default function Solutions() {
             priority
             sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
             className={[
-              'object-contain object-bottom select-none transition-transform duration-300',
-              // ⇒ agrandies : la centrale est plus grande que les latérales.
+              'object-contain select-none transition-transform duration-300',
+              // On remonte légèrement l’ancrage pour que les pieds restent clairement au-dessus du texte :
+              //  - centre : visuel le plus grand
+              //  - côtés  : un peu plus petit
               role === 'center'
-                ? 'scale-[1.26] sm:scale-[1.28] md:scale-[1.30] lg:scale-[1.32]'
-                : 'scale-[1.14] sm:scale-[1.16] md:scale-[1.18] lg:scale-[1.20]',
+                ? 'scale-[1.38] sm:scale-[1.40] md:scale-[1.42] lg:scale-[1.44] object-[center_92%]'
+                : 'scale-[1.24] sm:scale-[1.26] md:scale-[1.28] lg:scale-[1.30] object-[center_92%]',
             ].join(' ')}
           />
 
-          {/* Assombrissement doux sur les latérales (image + texte si tu préfères, voir note ci-dessous) */}
-          {role !== 'center' && (
-            <div className="absolute inset-0 pointer-events-none bg-black/18" />
-          )}
-
-          {/* Dégradé pour lire le texte (inchangé) */}
+          {/* Dégradé pour la lecture du texte */}
           <div
             className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '58%' }}
+            style={{ height: '56%' }}
           />
         </div>
 
-        {/* Zone texte (inchangée) */}
+        {/* Texte */}
         <div className="p-5">
           <h3 className="text-xl font-semibold">{data.name}</h3>
           <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : ' line-clamp-1')}>
@@ -109,10 +107,12 @@ export default function Solutions() {
             Voir les détails →
           </Link>
         </div>
-
-        {/* Si tu veux aussi assombrir la zone TEXTE des latérales, dé-commente ce bloc : */}
-        {/* {role !== 'center' && <div className="absolute inset-0 pointer-events-none bg-black/10" />} */}
       </div>
+
+      {/* Assombrissement intégral des cartes latérales (image + texte) */}
+      {role !== 'center' && (
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-black/22" />
+      )}
     </div>
   );
 
@@ -127,12 +127,18 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      <div className="relative py-8 px-2 md:px-4" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {/* Flèches (inchangées) */}
+      <div
+        className="relative py-8 px-2 md:px-4"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Flèches — un peu plus “sur l’image” */}
         <button
           onClick={goPrev}
-          className="hidden sm:flex items-center justify-center absolute left-[-14px] lg:left-[-22px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
+          className="hidden sm:flex items-center justify-center
+                     absolute left-[6%] md:left-[7%] top-[42%] -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full border border-white/15 bg-white/6
+                     hover:bg-white/12 backdrop-blur transition"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
@@ -140,14 +146,16 @@ export default function Solutions() {
 
         <button
           onClick={goNext}
-          className="hidden sm:flex items-center justify-center absolute right-[-14px] lg:right-[-22px] top-1/2 -translate-y-1/2 z-10
-                     h-12 w-12 rounded-full border border-white/15 bg-white/6 hover:bg-white/12 backdrop-blur transition"
+          className="hidden sm:flex items-center justify-center
+                     absolute right-[6%] md:right-[7%] top-[42%] -translate-y-1/2 z-10
+                     h-12 w-12 rounded-full border border-white/15 bg-white/6
+                     hover:bg-white/12 backdrop-blur transition"
           aria-label="Suivant"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* 3 cartes visibles (même layout qu’avant) */}
+        {/* 3 cartes visibles (mêmes largeurs qu’avant) */}
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
             <Card data={visible[0].data} role="left" />
@@ -160,7 +168,9 @@ export default function Solutions() {
           </div>
         </div>
 
-        <div className="mt-3 md:hidden text-center text-xs text-muted">Balayez pour changer d’agent</div>
+        <div className="mt-3 md:hidden text-center text-xs text-muted">
+          Balayez pour changer d’agent
+        </div>
       </div>
     </section>
   );
