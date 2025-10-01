@@ -33,7 +33,6 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: React.TouchEvent) => (touchStartX.current = e.touches[0].clientX);
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -45,53 +44,59 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  /* ===== Bordures discrètes (blanc très léger), pas d’outline bleue ===== */
+  /* ===== Cadre : bordure très discrète + mêmes classes qu’avant ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
-      'rounded-2xl border border-white/20 bg-[#0b0b0b] transition ' +
-      'hover:border-[rgba(212,175,55,0.45)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
+      'relative rounded-2xl border border-white/10 bg-[#0b0b0b] transition ' + // bordure plus “transparente”
+      'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
       'outline-none focus:outline-none focus-visible:outline-none';
 
-    const anim = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity,filter';
+    const anim = 'duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform,opacity,filter';
 
     if (role === 'center') {
       return base + ' ' + anim + ' scale-100 opacity-100 z-[2]';
     }
     if (role === 'left') {
-      return base + ' ' + anim + ' scale-[0.92] opacity-80 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
+      return base + ' ' + anim + ' scale-[0.90] opacity-80 -translate-x-2 md:-translate-x-3 lg:-translate-x-4';
     }
-    return base + ' ' + anim + ' scale-[0.92] opacity-80 translate-x-2 md:translate-x-3 lg:translate-x-4';
+    return base + ' ' + anim + ' scale-[0.90] opacity-80 translate-x-2 md:translate-x-3 lg:translate-x-4';
   };
 
-  // Échelle image (strictement dans la zone image, jamais sur le texte)
-  const imgScale = (role: 'left' | 'center' | 'right') =>
-    role === 'center' ? 1.18 : 1.10; // centre un peu plus grand, latérales un peu plus petites
-
+  /* ===== Carte : image plus grande (centre > latérales) + assombrissement des latérales ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
+      {/* Tout le contenu est “clippé” dans les coins arrondis */}
       <div className="rounded-[inherit] overflow-hidden">
-        {/* Zone image : aspect fixe, tout débordement est coupé ici (donc jamais sur le texte) */}
-        <div className="relative aspect-[4/5] w-full bg-black overflow-hidden">
+        {/* Zone image (reste identique) */}
+        <div className="relative aspect-[4/5] w-full bg-black">
           <Image
             src={data.image}
             alt={data.name}
             fill
             priority
             sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
-            className="object-contain object-bottom select-none transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{
-              transform: `scale(${imgScale(role)})`,
-              transformOrigin: 'bottom center',
-            }}
+            className={[
+              'object-contain object-bottom select-none transition-transform duration-300',
+              // ⇒ agrandies : la centrale est plus grande que les latérales.
+              role === 'center'
+                ? 'scale-[1.26] sm:scale-[1.28] md:scale-[1.30] lg:scale-[1.32]'
+                : 'scale-[1.14] sm:scale-[1.16] md:scale-[1.18] lg:scale-[1.20]',
+            ].join(' ')}
           />
-          {/* Dégradé vers le texte (laisse bien lire) */}
+
+          {/* Assombrissement doux sur les latérales (image + texte si tu préfères, voir note ci-dessous) */}
+          {role !== 'center' && (
+            <div className="absolute inset-0 pointer-events-none bg-black/18" />
+          )}
+
+          {/* Dégradé pour lire le texte (inchangé) */}
           <div
             className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
-            style={{ height: '56%' }}
+            style={{ height: '58%' }}
           />
         </div>
 
-        {/* Zone texte (jamais recouverte par l’image) */}
+        {/* Zone texte (inchangée) */}
         <div className="p-5">
           <h3 className="text-xl font-semibold">{data.name}</h3>
           <p className={'mt-2 text-sm leading-relaxed text-muted ' + (role === 'center' ? '' : ' line-clamp-1')}>
@@ -104,6 +109,9 @@ export default function Solutions() {
             Voir les détails →
           </Link>
         </div>
+
+        {/* Si tu veux aussi assombrir la zone TEXTE des latérales, dé-commente ce bloc : */}
+        {/* {role !== 'center' && <div className="absolute inset-0 pointer-events-none bg-black/10" />} */}
       </div>
     </div>
   );
@@ -139,7 +147,7 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* 3 cartes – tailles des cadres inchangées */}
+        {/* 3 cartes visibles (même layout qu’avant) */}
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           <div className="w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
             <Card data={visible[0].data} role="left" />
