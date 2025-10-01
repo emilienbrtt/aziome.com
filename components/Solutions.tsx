@@ -33,7 +33,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile (types simplifiés pour éviter tout bug TS)
+  // Swipe mobile — volontairement typé "any" pour éviter les frictions TS
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -65,10 +65,10 @@ export default function Solutions() {
       ' scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (hauteur compact + animaux XXL sans débordement) ===== */
+  /* ===== Carte (personnages remontés, pas de changement de hauteur) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
-      {/* Halo doré radial au hover (aucune classe exotique) */}
+      {/* Halo doré radial au hover */}
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
@@ -77,9 +77,9 @@ export default function Solutions() {
         }}
       />
 
-      {/* Zone image : cartes plus basses */}
+      {/* Zone image : hauteur conservée */}
       <div className="relative h-[340px] sm:h-[380px] lg:h-[420px] bg-black">
-        {/* Réserve bas = 80px (h-20) + légère remontée → jamais sur le texte */}
+        {/* Réserve bas = 80px (protège la zone texte) */}
         <div className="absolute inset-0 pt-0 pb-20">
           <Image
             src={data.image}
@@ -87,16 +87,17 @@ export default function Solutions() {
             fill
             priority={role === 'center'}
             sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
-            className={
-              'object-contain object-bottom select-none pointer-events-none transition-transform duration-300 ' +
-              (role === 'center'
-                ? 'scale-[1.64] -translate-y-[2.6%]' // centre > côtés
-                : 'scale-[1.52] -translate-y-[1.8%]')
-            }
+            className={[
+              'object-contain object-bottom select-none pointer-events-none',
+              'transition-transform duration-300',
+              role === 'center'
+                ? 'scale-[1.64] -translate-y-[3.4%]'  // centre : plus haut, aucune jambe dans le texte
+                : 'scale-[1.52] -translate-y-[2.2%]', // côtés : un peu plus haut, symétriques
+            ].join(' ')}
           />
         </div>
 
-        {/* Gradient = même hauteur que la réserve bas (80px) */}
+        {/* Gradient = même hauteur que la réserve bas */}
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-black/70" aria-hidden />
       </div>
 
@@ -129,7 +130,7 @@ export default function Solutions() {
         <div className="flex items-stretch justify-center gap-5 overflow-visible">
           {/* LEFT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche gauche — collée à l'extrémité GAUCHE de la carte gauche */}
+            {/* Flèche gauche — collée à l’extrémité gauche de la carte */}
             <button
               onClick={goPrev}
               className="hidden sm:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
@@ -137,7 +138,7 @@ export default function Solutions() {
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition duration-300"
+                className="pointer-events-none absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition duration-300"
                 style={{ background: 'radial-gradient(45% 45% at 50% 50%, rgba(212,175,55,0.38), rgba(0,0,0,0))' }}
               />
               <ChevronLeft className="relative z-10 h-6 w-6" />
@@ -152,7 +153,7 @@ export default function Solutions() {
 
           {/* RIGHT */}
           <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-            {/* Flèche droite — collée à l'extrémité DROITE de la carte droite */}
+            {/* Flèche droite — collée à l’extrémité droite de la carte */}
             <button
               onClick={goNext}
               className="hidden sm:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
@@ -160,7 +161,7 @@ export default function Solutions() {
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition duration-300"
+                className="pointer-events-none absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition duration-300"
                 style={{ background: 'radial-gradient(45% 45% at 50% 50%, rgba(212,175,55,0.38), rgba(0,0,0,0))' }}
               />
               <ChevronRight className="relative z-10 h-6 w-6" />
