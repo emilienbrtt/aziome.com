@@ -33,7 +33,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile — volontairement typé "any" pour éviter les frictions TS
+  // Swipe mobile (types simplifiés pour éviter les frictions TS)
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -65,7 +65,7 @@ export default function Solutions() {
       ' scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte (personnages remontés, pas de changement de hauteur) ===== */
+  /* ===== Carte (personnages plus hauts, centre > côtés, pas de débordement) ===== */
   const Card = ({ data, role }: { data: CardDef; role: 'left' | 'center' | 'right' }) => (
     <div className={roleClass(role)} tabIndex={-1}>
       {/* Halo doré radial au hover */}
@@ -73,7 +73,8 @@ export default function Solutions() {
         aria-hidden
         className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
         style={{
-          background: 'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
+          background:
+            'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
         }}
       />
 
@@ -91,8 +92,8 @@ export default function Solutions() {
               'object-contain object-bottom select-none pointer-events-none',
               'transition-transform duration-300',
               role === 'center'
-                ? 'scale-[1.64] -translate-y-[3.4%]'  // centre : plus haut, aucune jambe dans le texte
-                : 'scale-[1.52] -translate-y-[2.2%]', // côtés : un peu plus haut, symétriques
+                ? 'scale-[1.64] -translate-y-[3.8%]'  // centre : plus haut, aucun pied dans le texte
+                : 'scale-[1.56] -translate-y-[2.6%]', // côtés : plus grands et un peu plus hauts, symétriques
             ].join(' ')}
           />
         </div>
