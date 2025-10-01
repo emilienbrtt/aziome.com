@@ -5,23 +5,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ===== Réglages rapides =====
-   scale   : taille du personnage (1.00 = 100%)
-   offsetY : déplacement vertical (px). + = vers le BAS, - = vers le HAUT
+/* ===== Réglages faciles =====
+   scale   : taille du personnage
+   offsetY : déplacement vertical (px)  (+ = plus BAS)
    pb      : marge basse (px) au-dessus du texte (le gradient suit)
 */
 const TUNE = {
   desktop: {
-    center: { scale: 1.62, offsetY: 0,  pb: 84 },
-    side:   { scale: 1.52, offsetY: -2, pb: 84 },
-    imgHeightClass: 'h-[340px] sm:h-[380px] lg:h-[420px]', // hauteur du bloc image
+    center: { scale: 1.62, offsetY: 10, pb: 84 }, // ↓ un peu plus bas, taille inchangée
+    side:   { scale: 1.48, offsetY: 8,  pb: 84 }, // ↓ plus bas + plus petit que centre
   },
   mobile: {
-    center: { scale: 1.72, offsetY: 8,  pb: 96 },
-    imgHeightClass: 'h-[420px]',                           // hauteur du bloc image sur mobile
+    center: { scale: 1.72, offsetY: 16, pb: 96 }, // ↓ descend l’image pour éviter qu’elle soit trop haute
   },
 };
-/* ============================ */
 
 type CardDef = {
   slug: string;
@@ -51,7 +48,7 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  // Swipe mobile (typage souple pour la robustesse)
+  // Swipe mobile
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
   const onTouchEnd   = (e: any) => {
@@ -63,7 +60,7 @@ export default function Solutions() {
     else if (dx > threshold) goPrev();
   };
 
-  /* ===== Styles par rôle ===== */
+  /* ===== Styles cartes ===== */
   const baseCard =
     'group relative rounded-2xl ring-1 bg-[#0b0b0b] overflow-hidden ' +
     'transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] outline-none focus:outline-none';
@@ -82,18 +79,12 @@ export default function Solutions() {
     variant?: 'desktop' | 'mobile';
   }) {
     const isCenter = role === 'center';
-
     const cfg =
       variant === 'mobile'
         ? TUNE.mobile.center
         : isCenter
           ? TUNE.desktop.center
           : TUNE.desktop.side;
-
-    const imgHeightClass =
-      variant === 'mobile'
-        ? TUNE.mobile.imgHeightClass
-        : TUNE.desktop.imgHeightClass;
 
     return (
       <div className={isCenter ? centerCard : sideCard} tabIndex={-1}>
@@ -107,9 +98,12 @@ export default function Solutions() {
           }}
         />
 
-        {/* Bloc image — classes stables */}
-        <div className={`relative bg-black ${imgHeightClass}`}>
-          {/* Réserve bas + placement fin */}
+        {/* Bloc image — classes stables (pas de dynamique Tailwind) */}
+        <div className={variant === 'mobile'
+            ? 'relative bg-black h-[420px]'
+            : 'relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]'
+        }>
+          {/* Placement fin : offsetY (px) + scale ; espace bas protégé par pb */}
           <div className="absolute inset-0 pt-0" style={{ paddingBottom: cfg.pb }}>
             <Image
               src={data.image}
@@ -151,9 +145,9 @@ export default function Solutions() {
   }
 
   const visible = [
-    { data: CARDS[idxLeft], role: 'left' as const },
+    { data: CARDS[idxLeft],   role: 'left' as const },
     { data: CARDS[idxCenter], role: 'center' as const },
-    { data: CARDS[idxRight], role: 'right' as const },
+    { data: CARDS[idxRight],  role: 'right' as const },
   ];
 
   return (
@@ -165,13 +159,14 @@ export default function Solutions() {
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
         {/* LEFT */}
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-          {/* Flèche gauche à l'extrémité de la carte gauche */}
+          {/* Flèche gauche */}
           <button
             onClick={goPrev}
-            className="hidden sm:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
+            className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition
+                       items-center justify-center p-0"
             aria-label="Précédent"
           >
-            <ChevronLeft className="relative z-10 h-6 w-6" />
+            <ChevronLeft className="h-6 w-6" />
           </button>
           <Card data={visible[0].data} role={visible[0].role} variant="desktop" />
         </div>
@@ -183,13 +178,14 @@ export default function Solutions() {
 
         {/* RIGHT */}
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
-          {/* Flèche droite à l'extrémité de la carte droite */}
+          {/* Flèche droite */}
           <button
             onClick={goNext}
-            className="hidden sm:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] overflow-hidden transition"
+            className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition
+                       items-center justify-center p-0"
             aria-label="Suivant"
           >
-            <ChevronRight className="relative z-10 h-6 w-6" />
+            <ChevronRight className="h-6 w-6" />
           </button>
           <Card data={visible[2].data} role={visible[2].role} variant="desktop" />
         </div>
@@ -199,17 +195,21 @@ export default function Solutions() {
       <div className="md:hidden relative px-2" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <Card data={CARDS[idxCenter]} role="center" variant="mobile" />
 
-        {/* Flèches mobiles */}
+        {/* Flèches mobiles — icône centrée dans le cercle */}
         <button
           onClick={goPrev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+                     hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
+                     flex items-center justify-center p-0"
           aria-label="Précédent"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
         <button
           onClick={goNext}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
+                     hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)]
+                     flex items-center justify-center p-0"
           aria-label="Suivant"
         >
           <ChevronRight className="h-6 w-6" />
