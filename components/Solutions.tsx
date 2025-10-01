@@ -20,16 +20,13 @@ const CARDS: CardDef[] = [
   { slug: 'chris', name: 'Chris', image: '/agents/chris.png', blurb: "Gère les demandes internes et la paperasse sans retard." },
 ];
 
-// utils
+// util
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
-// ---------- Animation params (fluide) ----------
-const DURATION = 820; // ms – plus doux
-// Ease-in-out SINE : départ/arrivée lisses, pas d'accélération au milieu
-function ease(t: number) {
-  return 0.5 - 0.5 * Math.cos(Math.PI * t);
-}
-const GAP = 20; // px entre cartes
+// Animation
+const DURATION = 820; // ms
+function ease(t: number) { return 0.5 - 0.5 * Math.cos(Math.PI * t); } // ease-in-out sine
+const GAP = 20;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export default function Solutions() {
@@ -46,7 +43,7 @@ export default function Solutions() {
   const idxRight  = useMemo(() => mod(current + 1, n), [current, n]);
   const idxFar    = useMemo(() => (dir === 1 ? mod(current + 2, n) : mod(current - 2, n)), [current, n, dir]);
 
-  // Mesure largeur d’un slot (3 slots visibles + 2 gaps)
+  // Largeur d’un slot
   const sceneRef = useRef<HTMLDivElement>(null);
   const [slotW, setSlotW] = useState(0);
 
@@ -73,61 +70,38 @@ export default function Solutions() {
     dx < 0 ? next() : prev();
   };
 
-  const next = useCallback(() => {
-    if (anim) return;
-    setDir(1);
-    setAnim(true);
-    setProgress(0);
-  }, [anim]);
+  const next = useCallback(() => { if (!anim) { setDir(1); setAnim(true); setProgress(0); } }, [anim]);
+  const prev = useCallback(() => { if (!anim) { setDir(-1); setAnim(true); setProgress(0); } }, [anim]);
 
-  const prev = useCallback(() => {
-    if (anim) return;
-    setDir(-1);
-    setAnim(true);
-    setProgress(0);
-  }, [anim]);
-
-  // RAF : fait évoluer progress avec easing (glisse + scale synchronisés)
+  // RAF
   useEffect(() => {
     if (!anim) return;
     let raf = 0;
     const start = performance.now();
-
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / DURATION);
       setProgress(ease(t));
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-      } else {
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else {
         setSuppress(true);
         setProgress(0);
         setDir(0);
         setCurrent(c => mod(c + (dir as number), n));
-        requestAnimationFrame(() => {
-          setSuppress(false);
-          setAnim(false);
-        });
+        requestAnimationFrame(() => { setSuppress(false); setAnim(false); });
       }
     };
-
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [anim, dir, n]);
 
-  // ---------- États visuels (scales + glisse) ----------
-  // Cartes : centre légèrement plus grand que côtés
+  // États visuels
   const CARD_SCALE_CENTER = 1.03;
   const CARD_SCALE_SIDE   = 0.94;
-
-  // Images : plus grandes, mais toujours contenues (object-contain)
   const IMG_SCALE_CENTER  = 1.22;
   const IMG_SCALE_SIDE    = 1.10;
 
-  const slideBy   = slotW + GAP;
-  const sceneShift =
-    dir === 1 ? -slideBy * progress :
-    dir === -1 ?  slideBy * progress :
-    0;
+  const slideBy = slotW + GAP;
+  const sceneShift = dir === 1 ? -slideBy * progress : dir === -1 ? slideBy * progress : 0;
 
   const scaleFor = (role: 'left' | 'center' | 'right') => {
     if (dir === 1) {
@@ -157,7 +131,6 @@ export default function Solutions() {
     return role === 'center' ? IMG_SCALE_CENTER : IMG_SCALE_SIDE;
   };
 
-  // Assombrissement des latérales
   const shadeFor = (role: 'left' | 'center' | 'right') => {
     const SIDE_SHADE = 0.22;
     if (dir === 1) {
@@ -173,17 +146,17 @@ export default function Solutions() {
     return role === 'center' ? 0 : SIDE_SHADE;
   };
 
-  // ---------- Carte ----------
+  // Carte
   const baseCard =
-    'rounded-2xl border border-white/12 bg-[#0b0b0b] ' + // bord discret (blanc, pas bleu)
+    'rounded-2xl border border-white/12 bg-[#0b0b0b] ' +
     'hover:border-[rgba(212,175,55,0.40)] hover:shadow-[0_0_120px_rgba(212,175,55,0.18)] ' +
     'outline-none focus:outline-none focus-visible:outline-none ' +
     'transition-[border-color,box-shadow]';
 
   function Card({
     data,
-    role,                 // 'left' | 'center' | 'right' | 'edge-left' | 'edge-right'
-    edgeOffset,           // px : position absolue de la carte entrante
+    role,
+    edgeOffset,
   }: {
     data: CardDef;
     role: 'left' | 'center' | 'right' | 'edge-left' | 'edge-right';
@@ -209,7 +182,6 @@ export default function Solutions() {
         }}
       >
         <div className="rounded-[inherit] overflow-hidden">
-          {/* Zone image : ratio stable, jamais sur le texte */}
           <div className="relative aspect-[4/5] w-full bg-black">
             <Image
               src={data.image}
@@ -224,7 +196,6 @@ export default function Solutions() {
                 willChange: 'transform',
               }}
             />
-            {/* Assombrissement latérales */}
             {logicalRole !== 'center' && (
               <div
                 className="absolute inset-0 pointer-events-none"
@@ -235,14 +206,12 @@ export default function Solutions() {
                 }}
               />
             )}
-            {/* Dégradé bas vers le texte (lisibilité) */}
             <div
               className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/60 to-transparent"
               style={{ height: '58%' }}
             />
           </div>
 
-          {/* Texte */}
           <div className="p-5">
             <h3 className="text-xl font-semibold">{data.name}</h3>
             <p className={'mt-2 text-sm leading-relaxed text-muted ' + (logicalRole === 'center' ? '' : ' line-clamp-1')}>
@@ -258,7 +227,6 @@ export default function Solutions() {
 
     if (!isEdge) return Article;
 
-    // Carte entrante (absolue)
     return (
       <div
         className="absolute top-0"
@@ -269,23 +237,20 @@ export default function Solutions() {
     );
   }
 
-  // Séquence visible (left/center/right)
   const seq = useMemo(() => ([
     { key: `L-${idxLeft}`,   role: 'left'   as const, data: CARDS[idxLeft]   },
     { key: `C-${idxCenter}`, role: 'center' as const, data: CARDS[idxCenter] },
     { key: `R-${idxRight}`,  role: 'right'  as const, data: CARDS[idxRight]  },
   ]), [idxLeft, idxCenter, idxRight]);
 
-  // Carte entrante (edge)
   const edgeRole: 'edge-left' | 'edge-right' = dir === -1 ? 'edge-left' : 'edge-right';
   const edgeIdx = dir === 0 ? mod(current + 2, n) : idxFar;
 
-  // Placement absolu de l’edge
+  // *** Sécurité d’1px pour ne rien voir dépasser ***
   const edgeOffset = edgeRole === 'edge-left'
-    ? -(slotW + GAP)                          // à gauche, juste hors champ
-    : (slotW * 3 + GAP * 2);                  // à droite, juste hors champ
+    ? -(slotW + GAP + 1)
+    : (slotW * 3 + GAP * 2 + 1);
 
-  // Glisse de la scène (3 cartes visibles)
   const sceneTranslate = `translate3d(${sceneShift}px,0,0)`;
 
   return (
@@ -312,30 +277,33 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* SCÈNE centrée : largeur exacte (3 slots + 2 gaps) */}
-        <div
-          ref={sceneRef}
-          className="relative mx-auto overflow-visible"
-          style={{ width: slotW ? `${3 * slotW + 2 * GAP}px` : '100%' }}
-        >
-          {/* Carte entrante (hors champ, glisse avec la scène) */}
-          <Card data={CARDS[edgeIdx]} role={edgeRole} edgeOffset={edgeOffset} />
-
-          {/* Trio visible — glisse ensemble */}
+        {/* WRAPPER DE CLIPPING : cache horizontalement, laisse les ombres verticales */}
+        <div className="overflow-x-hidden overflow-y-visible">
+          {/* SCÈNE centrée */}
           <div
-            className="relative flex items-stretch justify-between"
-            style={{
-              transform: sceneTranslate,
-              transition: suppress ? 'none' : `transform ${DURATION}ms linear`,
-              willChange: 'transform',
-              gap: `${GAP}px`,
-            }}
+            ref={sceneRef}
+            className="relative mx-auto overflow-visible"
+            style={{ width: slotW ? `${3 * slotW + 2 * GAP}px` : '100%' }}
           >
-            {seq.map(({ key, role, data }) => (
-              <div key={key} className="shrink-0" style={{ width: slotW || undefined }}>
-                <Card data={data} role={role} />
-              </div>
-            ))}
+            {/* Edge (hors champ) */}
+            <Card data={CARDS[edgeIdx]} role={edgeRole} edgeOffset={edgeOffset} />
+
+            {/* Trio visible — glisse ensemble */}
+            <div
+              className="relative flex items-stretch justify-between"
+              style={{
+                transform: sceneTranslate,
+                transition: suppress ? 'none' : `transform ${DURATION}ms linear`,
+                willChange: 'transform',
+                gap: `${GAP}px`,
+              }}
+            >
+              {seq.map(({ key, role, data }) => (
+                <div key={key} className="shrink-0" style={{ width: slotW || undefined }}>
+                  <Card data={data} role={role} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
