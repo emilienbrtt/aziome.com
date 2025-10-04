@@ -12,7 +12,7 @@ export default function Trust() {
             <h3 className="text-xl font-semibold mb-1">Transparence</h3>
             <p className="text-muted">
               Tout ce que fait l’agent est enregistré.<br />
-              Vous voyez qui a fait quoi, et quand.<br />
+              Chaque action est enregistrée.<br />
               Vous gardez la main à tout moment.
             </p>
           </Card>
