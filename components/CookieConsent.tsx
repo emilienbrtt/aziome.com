@@ -3,80 +3,72 @@
 import { useEffect, useState } from 'react';
 
 type Consent = {
-  necessary: true;          // toujours vrai
+  necessary: true;
   analytics: boolean;
   marketing: boolean;
-  timestamp: string;        // ISO
-  version: string;          // change la version si tu modifies la politique
+  timestamp: string;
+  version: string;
 };
 
 const STORAGE_KEY = 'cookie-consent-v1';
 const CONSENT_VERSION = '1.0.0';
 
-function loadScript(src: string, attrs: Record<string,string> = {}) {
+/** Charge un script seulement côté client */
+function loadScript(src: string, attrs: Record<string, string> = {}) {
+  if (typeof window === 'undefined') return;
   const s = document.createElement('script');
-  s.src = src;
   s.async = true;
-  Object.entries(attrs).forEach(([k,v]) => s.setAttribute(k, v));
+  s.src = src;
+  Object.entries(attrs).forEach(([k, v]) => s.setAttribute(k, v));
   document.head.appendChild(s);
 }
 
-// Exemple: charger Google Analytics uniquement si "analytics" = true
+/** Exemple: Google Analytics (facultatif). Ne s’exécute que si autorisé. */
 function enableAnalytics() {
-  // Remplace par ton ID GA4 si tu l’utilises
   const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-  if (!GA_ID) return;
+  if (!GA_ID) return; // pas d’ID → on ignore
+
   loadScript(`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`);
   (window as any).dataLayer = (window as any).dataLayer || [];
-  function gtag(){ (window as any).dataLayer.push(arguments); }
+  function gtag() { (window as any).dataLayer.push(arguments); }
   (window as any).gtag = gtag;
   gtag('js', new Date());
   gtag('config', GA_ID, { anonymize_ip: true });
 }
 
-// Exemple: marketing (Meta Pixel / autres). Laisse vide si tu n’en as pas.
+/** Exemple marketing (Meta, etc.) — laisse vide si tu n’en as pas */
 function enableMarketing() {
-  // add your marketing pixels only if needed
+  // loadScript('https://…pixel.js')
 }
 
 function applyConsent(consent: Consent) {
+  if (typeof window === 'undefined') return;
   if (consent.analytics) enableAnalytics();
   if (consent.marketing) enableMarketing();
 }
 
 export default function CookieConsent() {
-  const [open, setOpen] = useState(false);         // bannière visible ?
-  const [panel, setPanel] = useState(false);       // panneau préférences
+  const [open, setOpen] = useState(false);    // bannière visible ?
+  const [panel, setPanel] = useState(false);  // panneau détaillé ?
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
 
-  // Afficher la bannière si pas de consentement stocké
+  // Au montage: lire le consentement
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setOpen(true);
-        return;
-      }
-      const saved: Consent = JSON.parse(raw);
-      // si on change la version, on redemande
-      if (!saved || saved.version !== CONSENT_VERSION) {
-        setOpen(true);
-        return;
-      }
-      // appliquer silencieusement les choix
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      if (!raw) { setOpen(true); return; }
+      const saved: Consent | null = JSON.parse(raw);
+      if (!saved || saved.version !== CONSENT_VERSION) { setOpen(true); return; }
       applyConsent(saved);
     } catch {
       setOpen(true);
     }
   }, []);
 
-  // Boutons
-  const acceptAll = () => {
+  const save = (c: Omit<Consent, 'timestamp' | 'version'>) => {
     const consent: Consent = {
-      necessary: true,
-      analytics: true,
-      marketing: true,
+      ...c,
       timestamp: new Date().toISOString(),
       version: CONSENT_VERSION,
     };
@@ -86,32 +78,9 @@ export default function CookieConsent() {
     setPanel(false);
   };
 
-  const rejectAll = () => {
-    const consent: Consent = {
-      necessary: true,
-      analytics: false,
-      marketing: false,
-      timestamp: new Date().toISOString(),
-      version: CONSENT_VERSION,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
-    setOpen(false);
-    setPanel(false);
-  };
-
-  const saveChoices = () => {
-    const consent: Consent = {
-      necessary: true,
-      analytics,
-      marketing,
-      timestamp: new Date().toISOString(),
-      version: CONSENT_VERSION,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
-    applyConsent(consent);
-    setOpen(false);
-    setPanel(false);
-  };
+  const acceptAll = () => save({ necessary: true, analytics: true, marketing: true });
+  const rejectAll = () => save({ necessary: true, analytics: false, marketing: false });
+  const saveChoices = () => save({ necessary: true, analytics, marketing });
 
   if (!open) return null;
 
@@ -119,10 +88,10 @@ export default function CookieConsent() {
     <div
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center
                  bg-black/40 backdrop-blur-sm"
-      aria-modal="true"
       role="dialog"
+      aria-modal="true"
     >
-      {/* Bannière compacte (si panel fermé) */}
+      {/* Vue compacte */}
       {!panel && (
         <div
           className="mx-4 sm:mx-0 w-[min(680px,92vw)] rounded-2xl
@@ -132,8 +101,8 @@ export default function CookieConsent() {
         >
           <h3 className="text-lg font-semibold">Gestion des cookies</h3>
           <p className="text-sm text-white/70 mt-2">
-            Nous utilisons des cookies pour assurer le bon fonctionnement du site (nécessaires),
-            mesurer l’audience (analytics) et améliorer nos campagnes (marketing).
+            Nous utilisons des cookies nécessaires au fonctionnement du site,
+            ainsi que des cookies pour la mesure d’audience et le marketing.
             Vous pouvez accepter, refuser ou personnaliser vos choix.
           </p>
 
@@ -161,13 +130,13 @@ export default function CookieConsent() {
           </div>
 
           <p className="mt-3 text-xs text-white/50">
-            Les cookies « nécessaires » sont toujours activés. Vous pouvez modifier vos
-            préférences à tout moment depuis le pied de page.
+            Les cookies « nécessaires » sont toujours actifs. Vous pourrez
+            modifier vos choix plus tard depuis le pied de page.
           </p>
         </div>
       )}
 
-      {/* Panneau de préférences détaillé */}
+      {/* Panneau détaillé */}
       {panel && (
         <div
           className="mx-4 sm:mx-0 w-[min(720px,94vw)] rounded-2xl
@@ -187,60 +156,50 @@ export default function CookieConsent() {
 
           <div className="mt-4 space-y-4">
             <section className="rounded-xl border border-white/10 p-4">
-              <h4 className="font-medium">Nécessaires <span className="text-xs text-white/50">(toujours actifs)</span></h4>
+              <h4 className="font-medium">
+                Nécessaires <span className="text-xs text-white/50">(toujours actifs)</span>
+              </h4>
               <p className="text-sm text-white/60 mt-1">
-                Indispensables au fonctionnement du site (sécurité, préférence de langue, consentement lui-même).
-                Ils ne collectent pas de données personnelles à des fins marketing.
+                Sécurité, accès, sauvegarde de vos préférences… aucune publicité.
               </p>
             </section>
 
+            {/* Switch sans pseudo-élément tricky */}
             <section className="rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">Mesure d’audience (Analytics)</h4>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <span className="text-white/60">Off</span>
+                <label className="inline-flex items-center gap-3">
                   <input
                     type="checkbox"
-                    className="peer sr-only"
                     checked={analytics}
                     onChange={(e) => setAnalytics(e.target.checked)}
+                    className="h-5 w-5 accent-[color:var(--gold-1)]"
                     aria-label="Activer analytics"
                   />
-                  <span className="h-6 w-10 rounded-full bg-white/15 relative
-                                   after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                                   after:h-5 after:w-5 after:rounded-full after:bg-white
-                                   peer-checked:after:translate-x-4 after:transition
-                                   peer-checked:bg-[rgba(212,175,55,0.35)]" />
-                  <span className="text-white/60">On</span>
+                  <span className="text-sm text-white/70">{analytics ? 'Activé' : 'Désactivé'}</span>
                 </label>
               </div>
               <p className="text-sm text-white/60 mt-1">
-                Nous aide à comprendre l’usage du site pour l’améliorer (ex. Google Analytics avec anonymisation IP).
+                Ex. Google Analytics (IP anonymisée). Aide à améliorer le site.
               </p>
             </section>
 
             <section className="rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">Marketing</h4>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <span className="text-white/60">Off</span>
+                <label className="inline-flex items-center gap-3">
                   <input
                     type="checkbox"
-                    className="peer sr-only"
                     checked={marketing}
                     onChange={(e) => setMarketing(e.target.checked)}
+                    className="h-5 w-5 accent-[color:var(--gold-1)]"
                     aria-label="Activer marketing"
                   />
-                  <span className="h-6 w-10 rounded-full bg-white/15 relative
-                                   after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                                   after:h-5 after:w-5 after:rounded-full after:bg-white
-                                   peer-checked:after:translate-x-4 after:transition
-                                   peer-checked:bg-[rgba(212,175,55,0.35)]" />
-                  <span className="text-white/60">On</span>
+                  <span className="text-sm text-white/70">{marketing ? 'Activé' : 'Désactivé'}</span>
                 </label>
               </div>
               <p className="text-sm text-white/60 mt-1">
-                Sert à personnaliser nos publicités et mesurer leur efficacité (pixels publicitaires).
+                Pixels publicitaires pour personnaliser et mesurer nos campagnes.
               </p>
             </section>
           </div>
@@ -269,8 +228,8 @@ export default function CookieConsent() {
           </div>
 
           <p className="mt-3 text-xs text-white/50">
-            Enregistrer vos choix active immédiatement les catégories sélectionnées. Vous pourrez
-            les modifier plus tard depuis le pied de page.
+            Les choix sont appliqués immédiatement. Vous pouvez les changer
+            plus tard depuis le pied de page.
           </p>
         </div>
       )}
