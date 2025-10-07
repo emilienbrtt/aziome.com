@@ -8,29 +8,30 @@ export default function ChatCTA({ agentName }: Props) {
   const openChat = () => {
     // 1) CRISP (si présent)
     try {
-      const w = window as any;
-      if (w.$crisp) {
-        // segmente la session par agent (utile pour router côté Crisp)
+      if (typeof window !== 'undefined' && (window as any).$crisp) {
+        const w = window as any;
         w.$crisp.push(['set', 'session:segments', [[`agent-${agentName.toLowerCase()}`]]]);
         w.$crisp.push(['do', 'chat:open']);
         w.$crisp.push(['do', 'message:show', ['text', prefill]]);
         return;
       }
-    } catch {}
+    } catch { /* ignore */ }
 
     // 2) INTERCOM (si présent)
     try {
-      const w = window as any;
-      if (w.Intercom) {
+      if (typeof window !== 'undefined' && (window as any).Intercom) {
+        const w = window as any;
         w.Intercom('update', { agent: agentName });
         w.Intercom('show');
         w.Intercom('showNewMessage', prefill);
         return;
       }
-    } catch {}
+    } catch { /* ignore */ }
 
     // 3) Fallback : page Contact préremplie
-    window.location.href = `/contact?agent=${encodeURIComponent(agentName)}`;
+    if (typeof window !== 'undefined') {
+      window.location.href = `/contact?agent=${encodeURIComponent(agentName)}`;
+    }
   };
 
   return (
