@@ -6,18 +6,18 @@ import ChatCTA from './ChatCTA';
 
 type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
-const AGENTS: Record<
-  AgentKey,
-  {
-    name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
-    subtitle: string;
-    avatar: string;
-    intro: string;
-    why: string[];
-    stacks: string[];
-    youSee: string[];
-  }
-> = {
+// on simplifie les types pour éviter tout crash TS
+type AgentInfo = {
+  name: string;
+  subtitle: string;
+  avatar: string;
+  intro: string;
+  why: string[];
+  stacks: string[];
+  youSee: string[];
+};
+
+const AGENTS: Record<AgentKey, AgentInfo> = {
   max: {
     name: 'Max',
     subtitle: 'CRM & Relances',
@@ -123,16 +123,16 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
 
       {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel */}
-        <div className="relative h-[400px] sm:h-[480px] md:h-[620px]">
+        {/* Visuel — plus HAUT sur mobile */}
+        <div className="relative h-[420px] sm:h-[500px] md:h-[640px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain pointer-events-none transform
-                       -translate-y-[140px] md:-translate-y-[10px]
-                       scale-[1.36] md:scale-[1.28]"
+            className="object-contain pointer-events-none select-none
+                       translate-y-[-168px] md:translate-y-[-12px]
+                       scale-[1.38] md:scale-[1.28]"
             style={{ objectPosition: 'center bottom' }}
           />
         </div>
@@ -143,9 +143,7 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
 
-          <div className="mt-6">
-            <ChatCTA agentName={current.name} />
-          </div>
+          <ChatCTA agentName={current.name} />
         </div>
       </div>
 
