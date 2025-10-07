@@ -91,8 +91,8 @@ export default function AgentPage({
   const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== key);
 
   return (
-    <section className="relative max-w-6xl mx-auto px-6 py-20">
-      {/* halo discret – reste dans le fond */}
+    <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
+      {/* halo discret */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
@@ -100,26 +100,29 @@ export default function AgentPage({
       />
 
       {/* back */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90" style={{ WebkitTapHighlightColor: 'transparent' }}>
           ← Revenir aux agents
         </Link>
       </div>
 
-      {/* HERO : visuel sans cadre à gauche, infos à droite */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Visuel — plus de carte, juste le fond du site */}
-        <div className="relative h-[500px] sm:h-[560px] md:h-[620px]">
+      {/* HERO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
+        {/* Visuel — variables CSS pour placer la tête AU PLUS HAUT */}
+        <div className="relative h-[380px] sm:h-[440px] md:h-[560px] lg:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain select-none pointer-events-none"
+            className="
+              object-contain select-none pointer-events-none origin-bottom
+              [--y:-150px] sm:[--y:-160px] md:[--y:-78px] lg:[--y:-68px]
+              [--s:1.38] md:[--s:1.33]
+            "
             style={{
+              transform: 'translateY(var(--y)) scale(var(--s))',
               objectPosition: 'center bottom',
-              transform: 'translateY(6px) scale(1.28)', /* +grand qu’avant */
-              transformOrigin: 'bottom',
             }}
           />
         </div>
