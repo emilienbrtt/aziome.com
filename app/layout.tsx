@@ -1,12 +1,12 @@
 // app/layout.tsx
-import "./globals.css"; // on met le CSS global DANS app/ (voir fichier plus bas)
+import "../styles/globals.css";   // ✅ bon chemin (dossier frère de `app`)
+import "../styles/tokens.css";    // ✅ si tu utilises tokens.css (il est présent dans /styles)
 
 import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
 
-// Ces deux composants sont des "client components"
-import CookieConsent from "../components/CookieConsent";
-import ChatWidget from "../components/ChatWidget"; // safe stub fourni plus bas
+import CookieConsent from "../components/CookieConsent"; // ✅ dossier frère de `app`
+import ChatWidget from "../components/ChatWidget";       // facultatif, stub “safe”
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -33,6 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Overlays globaux */}
         <CookieConsent />
         <ChatWidget />
+
+        {/* Si tu avais un script Plausible ici, déplace-le plutôt
+            dans un composant client qui lit le consentement avant de l’injecter. */}
       </body>
     </html>
   );
