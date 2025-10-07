@@ -91,7 +91,7 @@ export default function AgentPage({
   const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== key);
 
   return (
-    <section className="relative max-w-6xl mx-auto px-6 py-20">
+    <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
       {/* halo discret */}
       <div
         aria-hidden
@@ -100,24 +100,24 @@ export default function AgentPage({
       />
 
       {/* back */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90" style={{ WebkitTapHighlightColor: 'transparent' }}>
           ← Revenir aux agents
         </Link>
       </div>
 
-      {/* HERO : visuel sans cadre à gauche, infos à droite */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Visuel — mobile : bloc moins haut + perso remonté */}
-        <div className="relative h-[440px] sm:h-[520px] md:h-[620px]">
+      {/* HERO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
+        {/* Visuel — mobile : bloc moins haut + perso fortement remonté */}
+        <div className="relative h-[400px] sm:h-[480px] md:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
             className="object-contain select-none pointer-events-none transform
-                       translate-y-[-28px] md:translate-y-[6px]
-                       scale-[1.30] md:scale-[1.28]"
+                       translate-y-[-96px] md:translate-y-[6px]
+                       scale-[1.34] md:scale-[1.28]"
             style={{ objectPosition: 'center bottom' }}
           />
         </div>
