@@ -23,11 +23,7 @@ const AGENTS: Record<
     avatar: '/agents/max.png',
     intro:
       'Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.',
-    why: [
-      'Vous récupérez des ventes perdues.',
-      'Plus de clients reviennent acheter.',
-      'Messages clairs, au bon moment.',
-    ],
+    why: ['Vous récupérez des ventes perdues.', 'Plus de clients reviennent acheter.', 'Messages clairs, au bon moment.'],
     stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
     youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
   },
@@ -37,11 +33,7 @@ const AGENTS: Record<
     avatar: '/agents/lea.png',
     intro:
       'Répond vite et clairement, suit les commandes et transfère à un humain si besoin.',
-    why: [
-      'Moins d’attente pour vos clients',
-      'Moins de charge pour l’équipe',
-      'Vous gardez la main à tout moment',
-    ],
+    why: ['Moins d’attente pour vos clients', 'Moins de charge pour l’équipe', 'Vous gardez la main à tout moment'],
     stacks: ['Email, chat, WhatsApp', 'Gorgias, Zendesk, Freshdesk', 'Shopify, WooCommerce'],
     youSee: ['Temps de réponse moyen', 'Demandes résolues par l’agent', 'Satisfaction client'],
   },
@@ -51,11 +43,7 @@ const AGENTS: Record<
     avatar: '/agents/jules.png',
     intro:
       'Met vos chiffres sur une page simple, alerte en cas d’anomalie, répond aux questions (“Combien hier ?”).',
-    why: [
-      'Vous savez où vous en êtes chaque jour',
-      'Vous repérez les soucis tout de suite',
-      'Moins de fichiers, plus de clarté',
-    ],
+    why: ['Vous savez où vous en êtes chaque jour', 'Vous repérez les soucis tout de suite', 'Moins de fichiers, plus de clarté'],
     stacks: ['Shopify / WooCommerce', 'Gorgias / Zendesk', 'Google Sheets, Looker, Notion'],
     youSee: ['Tableau à jour', 'Alertes email / Slack', 'Résumé hebdomadaire'],
   },
@@ -65,11 +53,7 @@ const AGENTS: Record<
     avatar: '/agents/mia.png',
     intro:
       'Accueille chaque demande, pose les bonnes questions et oriente vers la bonne personne.',
-    why: [
-      'Réponses immédiates, 24h/24',
-      'Moins d’appels ou emails perdus',
-      'Parcours client plus fluide',
-    ],
+    why: ['Réponses immédiates, 24h/24', 'Moins d’appels ou emails perdus', 'Parcours client plus fluide'],
     stacks: ['Chat du site, formulaire, email', 'WhatsApp, Facebook/Instagram', 'Transcriptions d’appels, Slack'],
     youSee: ['Demandes prises en charge', 'Catégories & motifs récurrents', 'Taux de transfert vers humain'],
   },
@@ -79,11 +63,7 @@ const AGENTS: Record<
     avatar: '/agents/chris.png',
     intro:
       'Prend en charge les demandes internes (attestations, absences), prépare les documents et répond aux questions.',
-    why: [
-      'Moins d’administratif pour les RH',
-      'Réponses rapides pour les équipes',
-      'Moins d’erreurs et de retards',
-    ],
+    why: ['Moins d’administratif pour les RH', 'Réponses rapides pour les équipes', 'Moins d’erreurs et de retards'],
     stacks: ['Google Workspace/Drive, Notion', 'Slack ou Microsoft Teams', 'Outils SIRH (placeholders)'],
     youSee: ['Demandes traitées', 'Documents générés', 'Délai moyen de réponse'],
   },
@@ -112,51 +92,36 @@ export default function AgentPage({
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 py-20">
-      {/* halo décoratif */}
+      {/* halo discret – reste dans le fond */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-30 blur-3xl"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, rgba(212,175,55,0.18), transparent 60%)',
-        }}
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.16), transparent 60%)' }}
       />
 
       {/* back */}
       <div className="mb-8">
-        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
+        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90" style={{ WebkitTapHighlightColor: 'transparent' }}>
           ← Revenir aux agents
         </Link>
       </div>
 
-      {/* HERO : gros perso à gauche, infos à droite */}
+      {/* HERO : visuel sans cadre à gauche, infos à droite */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Visuel XXL */}
-        <div className="relative">
-          <div
-            aria-hidden
-            className="absolute -inset-6 rounded-[28px] blur-2xl opacity-70"
+        {/* Visuel — plus de carte, juste le fond du site */}
+        <div className="relative h-[500px] sm:h-[560px] md:h-[620px]">
+          <Image
+            src={current.avatar}
+            alt={current.name}
+            fill
+            priority
+            className="object-contain select-none pointer-events-none"
             style={{
-              background:
-                'radial-gradient(60% 50% at 50% 35%, rgba(212,175,55,0.18), rgba(0,0,0,0))',
+              objectPosition: 'center bottom',
+              transform: 'translateY(6px) scale(1.28)', /* +grand qu’avant */
+              transformOrigin: 'bottom',
             }}
           />
-          <div className="relative rounded-3xl ring-1 ring-white/12 bg-black/80 p-4 h-[480px] sm:h-[540px] md:h-[580px]">
-            <div className="relative w-full h-full">
-              <Image
-                src={current.avatar}
-                alt={current.name}
-                fill
-                priority
-                className="object-contain select-none pointer-events-none"
-                style={{
-                  objectPosition: 'center bottom',
-                  transform: 'translateY(8px) scale(1.22)',
-                  transformOrigin: 'bottom',
-                }}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Infos */}
@@ -170,6 +135,7 @@ export default function AgentPage({
               href={`/contact?agent=${encodeURIComponent(current.name)}`}
               className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
                          bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               Parler de cet agent →
             </Link>
@@ -177,7 +143,7 @@ export default function AgentPage({
         </div>
       </div>
 
-      {/* Détails : 3 cartes lisibles */}
+      {/* Détails : 3 cartes */}
       <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
         <Card title="Pourquoi c’est utile" items={current.why} />
         <Card title="Ça marche avec" items={current.stacks} />
@@ -195,6 +161,7 @@ export default function AgentPage({
                 key={k}
                 href={`/agents/${k}`}
                 className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Image
                   src={a.avatar}
@@ -216,7 +183,7 @@ export default function AgentPage({
   );
 }
 
-/* ————— sous-composant ————— */
+/* — sous-composant — */
 function Card({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="glass rounded-2xl p-6">
