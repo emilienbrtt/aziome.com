@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -78,7 +80,7 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
   const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
 
   return (
-    <section className="relative max-w-5xl mx-auto px-6 py-20">
+    <section className="relative max-w-6xl mx-auto px-6 py-20">
       {/* halo décoratif */}
       <div
         aria-hidden
@@ -88,68 +90,64 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
 
       {/* back */}
       <div className="mb-8">
-        <Link href="/#solutions" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
+        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
           ← Revenir aux agents
         </Link>
       </div>
 
-      {/* hero */}
-      <div className="glass rounded-2xl p-6 md:p-8 flex items-start gap-6">
-        <Image
-          src={current.avatar}
-          alt={current.name}
-          width={112}
-          height={112}
-          priority
-          className="rounded-full ring-2 ring-[rgba(212,175,55,0.45)] shadow-[0_0_55px_rgba(212,175,55,0.35)] object-cover"
-        />
-        <div className="flex-1">
+      {/* HERO : gros perso à gauche, infos à droite */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+        {/* Visuel XXL */}
+        <div className="relative">
+          <div
+            aria-hidden
+            className="absolute -inset-6 rounded-[28px] blur-2xl opacity-70"
+            style={{ background: 'radial-gradient(60% 50% at 50% 35%, rgba(212,175,55,0.18), rgba(0,0,0,0))' }}
+          />
+          <div className="relative rounded-3xl ring-1 ring-white/12 bg-black/80 p-4 h-[480px] sm:h-[540px] md:h-[580px]">
+            <div className="relative w-full h-full">
+              <Image
+                src={current.avatar}
+                alt={current.name}
+                fill
+                priority
+                className="object-contain select-none pointer-events-none"
+                style={{
+                  objectPosition: 'center bottom',
+                  transform: 'translateY(8px) scale(1.22)',
+                  transformOrigin: 'bottom',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Infos */}
+        <div>
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
-          <p className="mt-4">{current.intro}</p>
+          <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
+
+          <div className="mt-8">
+            <Link
+              href={`/contact?agent=${encodeURIComponent(current.name)}`}
+              className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
+                         bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
+            >
+              Parler de cet agent →
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* details */}
-      <div className="mt-8 grid md:grid-cols-3 gap-6 text-sm">
-        <div className="glass rounded-2xl p-6">
-          <h2 className="font-medium mb-3">Pourquoi c’est utile</h2>
-          <ul className="list-disc pl-5 space-y-1 text-muted">
-            {current.why.map((x, i) => (
-              <li key={i}>{x}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="glass rounded-2xl p-6">
-          <h2 className="font-medium mb-3">Ça marche avec</h2>
-          <ul className="list-disc pl-5 space-y-1 text-muted">
-            {current.stacks.map((x, i) => (
-              <li key={i}>{x}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="glass rounded-2xl p-6">
-          <h2 className="font-medium mb-3">Ce que vous voyez</h2>
-          <ul className="list-disc pl-5 space-y-1 text-muted">
-            {current.youSee.map((x, i) => (
-              <li key={i}>{x}</li>
-            ))}
-          </ul>
-        </div>
+      {/* Détails : 3 cartes lisibles */}
+      <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
+        <Card title="Pourquoi c’est utile" items={current.why} />
+        <Card title="Ça marche avec" items={current.stacks} />
+        <Card title="Ce que vous voyez" items={current.youSee} />
       </div>
 
-      {/* CTA simple */}
-      <div className="mt-8">
-        <Link
-          href="/#contact"
-          className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                     bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
-        >
-          Parler de cet agent →
-        </Link>
-      </div>
-
-      {/* suggestion rail */}
+      {/* Autres agents */}
       <div className="mt-12">
         <h3 className="text-base font-medium mb-4">Explorer les autres agents</h3>
         <div className="flex gap-4 overflow-x-auto pb-2">
@@ -178,5 +176,19 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ————— sous-composant ————— */
+function Card({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="glass rounded-2xl p-6">
+      <h2 className="font-medium mb-3">{title}</h2>
+      <ul className="list-disc pl-5 space-y-1 text-muted">
+        {items.map((x, i) => (
+          <li key={i}>{x}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
