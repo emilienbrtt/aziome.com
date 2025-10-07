@@ -2,33 +2,28 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import ChatCTA from './ChatCTA';
 
 type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
-// on simplifie les types pour éviter tout crash TS
-type AgentInfo = {
-  name: string;
-  subtitle: string;
-  avatar: string;
-  intro: string;
-  why: string[];
-  stacks: string[];
-  youSee: string[];
-};
-
-const AGENTS: Record<AgentKey, AgentInfo> = {
+const AGENTS: Record<
+  AgentKey,
+  {
+    name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
+    subtitle: string;
+    avatar: string;
+    intro: string;
+    why: string[];
+    stacks: string[];
+    youSee: string[];
+  }
+> = {
   max: {
     name: 'Max',
     subtitle: 'CRM & Relances',
     avatar: '/agents/max.png',
     intro:
-      "Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.",
-    why: [
-      'Vous récupérez des ventes perdues.',
-      'Plus de clients reviennent acheter.',
-      'Messages clairs, au bon moment.',
-    ],
+      'Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.',
+    why: ['Vous récupérez des ventes perdues.', 'Plus de clients reviennent acheter.', 'Messages clairs, au bon moment.'],
     stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
     youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
   },
@@ -38,11 +33,7 @@ const AGENTS: Record<AgentKey, AgentInfo> = {
     avatar: '/agents/lea.png',
     intro:
       'Répond vite et clairement, suit les commandes et transfère à un humain si besoin.',
-    why: [
-      'Moins d’attente pour vos clients',
-      'Moins de charge pour l’équipe',
-      'Vous gardez la main à tout moment',
-    ],
+    why: ['Moins d’attente pour vos clients', 'Moins de charge pour l’équipe', 'Vous gardez la main à tout moment'],
     stacks: ['Email, chat, WhatsApp', 'Gorgias, Zendesk, Freshdesk', 'Shopify, WooCommerce'],
     youSee: ['Temps de réponse moyen', 'Demandes résolues par l’agent', 'Satisfaction client'],
   },
@@ -52,11 +43,7 @@ const AGENTS: Record<AgentKey, AgentInfo> = {
     avatar: '/agents/jules.png',
     intro:
       'Met vos chiffres sur une page simple, alerte en cas d’anomalie, répond aux questions (“Combien hier ?”).',
-    why: [
-      'Vous savez où vous en êtes chaque jour',
-      'Vous repérez les soucis tout de suite',
-      'Moins de fichiers, plus de clarté',
-    ],
+    why: ['Vous savez où vous en êtes chaque jour', 'Vous repérez les soucis tout de suite', 'Moins de fichiers, plus de clarté'],
     stacks: ['Shopify / WooCommerce', 'Gorgias / Zendesk', 'Google Sheets, Looker, Notion'],
     youSee: ['Tableau à jour', 'Alertes email / Slack', 'Résumé hebdomadaire'],
   },
@@ -66,11 +53,7 @@ const AGENTS: Record<AgentKey, AgentInfo> = {
     avatar: '/agents/mia.png',
     intro:
       'Accueille chaque demande, pose les bonnes questions et oriente vers la bonne personne.',
-    why: [
-      'Réponses immédiates, 24h/24',
-      'Moins d’appels ou emails perdus',
-      'Parcours client plus fluide',
-    ],
+    why: ['Réponses immédiates, 24h/24', 'Moins d’appels ou emails perdus', 'Parcours client plus fluide'],
     stacks: ['Chat du site, formulaire, email', 'WhatsApp, Facebook/Instagram', 'Transcriptions d’appels, Slack'],
     youSee: ['Demandes prises en charge', 'Catégories & motifs récurrents', 'Taux de transfert vers humain'],
   },
@@ -80,11 +63,7 @@ const AGENTS: Record<AgentKey, AgentInfo> = {
     avatar: '/agents/chris.png',
     intro:
       'Prend en charge les demandes internes (attestations, absences), prépare les documents et répond aux questions.',
-    why: [
-      'Moins d’administratif pour les RH',
-      'Réponses rapides pour les équipes',
-      'Moins d’erreurs et de retards',
-    ],
+    why: ['Moins d’administratif pour les RH', 'Réponses rapides pour les équipes', 'Moins d’erreurs et de retards'],
     stacks: ['Google Workspace/Drive, Notion', 'Slack ou Microsoft Teams', 'Outils SIRH (placeholders)'],
     youSee: ['Demandes traitées', 'Documents générés', 'Délai moyen de réponse'],
   },
@@ -93,17 +72,23 @@ const AGENTS: Record<AgentKey, AgentInfo> = {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: AgentKey };
+  params: { slug?: AgentKey; limace?: AgentKey };
 }): Promise<Metadata> {
-  const a = AGENTS[params.slug];
+  const key = (params.slug ?? params.limace) as AgentKey | undefined;
+  const a = key ? AGENTS[key] : undefined;
   return { title: `${a?.name ?? 'Agent'} — Aziome` };
 }
 
-export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
-  const current = AGENTS[params.slug];
+export default function AgentPage({
+  params,
+}: {
+  params: { slug?: AgentKey; limace?: AgentKey };
+}) {
+  const key = (params.slug ?? params.limace) as AgentKey | undefined;
+  const current = key ? AGENTS[key] : undefined;
   if (!current) return notFound();
 
-  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
+  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== key);
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
@@ -116,38 +101,52 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
 
       {/* back */}
       <div className="mb-6 md:mb-8">
-        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
+        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90" style={{ WebkitTapHighlightColor: 'transparent' }}>
           ← Revenir aux agents
         </Link>
       </div>
 
       {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel — plus HAUT sur mobile */}
-        <div className="relative h-[420px] sm:h-[500px] md:h-[640px]">
+        {/* Visuel — variables CSS pour placer la tête AU PLUS HAUT */}
+        <div className="relative h-[380px] sm:h-[440px] md:h-[560px] lg:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain pointer-events-none select-none
-                       translate-y-[-168px] md:translate-y-[-12px]
-                       scale-[1.38] md:scale-[1.28]"
-            style={{ objectPosition: 'center bottom' }}
+            className="
+              object-contain select-none pointer-events-none origin-bottom
+              [--y:-150px] sm:[--y:-160px] md:[--y:-78px] lg:[--y:-68px]
+              [--s:1.38] md:[--s:1.33]
+            "
+            style={{
+              transform: 'translateY(var(--y)) scale(var(--s))',
+              objectPosition: 'center bottom',
+            }}
           />
         </div>
 
-        {/* Infos + CTA chat */}
+        {/* Infos */}
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
 
-          <ChatCTA agentName={current.name} />
+          <div className="mt-8">
+            <Link
+              href={`/contact?agent=${encodeURIComponent(current.name)}`}
+              className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
+                         bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              Parler de cet agent →
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Détails */}
+      {/* Détails : 3 cartes */}
       <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
         <Card title="Pourquoi c’est utile" items={current.why} />
         <Card title="Ça marche avec" items={current.stacks} />
@@ -165,6 +164,7 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
                 key={k}
                 href={`/agents/${k}`}
                 className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Image
                   src={a.avatar}
@@ -186,7 +186,7 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
   );
 }
 
-/* — Sous-composant — */
+/* — sous-composant — */
 function Card({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="glass rounded-2xl p-6">
