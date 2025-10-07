@@ -93,17 +93,17 @@ const AGENTS: Record<
 export async function generateMetadata({
   params,
 }: {
-  params: { limace: AgentKey };
+  params: { slug: AgentKey };
 }): Promise<Metadata> {
-  const a = AGENTS[params.limace];
+  const a = AGENTS[params.slug];
   return { title: `${a?.name ?? 'Agent'} — Aziome` };
 }
 
-export default function AgentPage({ params }: { params: { limace: AgentKey } }) {
-  const current = AGENTS[params.limace];
+export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
+  const current = AGENTS[params.slug];
   if (!current) return notFound();
 
-  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.limace);
+  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
@@ -143,7 +143,9 @@ export default function AgentPage({ params }: { params: { limace: AgentKey } }) 
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
 
-          <ChatCTA agentName={current.name} />
+          <div className="mt-6">
+            <ChatCTA agentName={current.name} />
+          </div>
         </div>
       </div>
 
