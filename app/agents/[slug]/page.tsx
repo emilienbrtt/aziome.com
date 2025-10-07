@@ -22,7 +22,7 @@ const AGENTS: Record<
     subtitle: 'CRM & Relances',
     avatar: '/agents/max.png',
     intro:
-      'Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.',
+      "Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.",
     why: ['Vous récupérez des ventes perdues.', 'Plus de clients reviennent acheter.', 'Messages clairs, au bon moment.'],
     stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
     youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
@@ -69,26 +69,16 @@ const AGENTS: Record<
   },
 };
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug?: AgentKey; limace?: AgentKey };
-}): Promise<Metadata> {
-  const key = (params.slug ?? params.limace) as AgentKey | undefined;
-  const a = key ? AGENTS[key] : undefined;
+export async function generateMetadata({ params }: { params: { slug: AgentKey } }): Promise<Metadata> {
+  const a = AGENTS[params.slug];
   return { title: `${a?.name ?? 'Agent'} — Aziome` };
 }
 
-export default function AgentPage({
-  params,
-}: {
-  params: { slug?: AgentKey; limace?: AgentKey };
-}) {
-  const key = (params.slug ?? params.limace) as AgentKey | undefined;
-  const current = key ? AGENTS[key] : undefined;
+export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
+  const current = AGENTS[params.slug];
   if (!current) return notFound();
 
-  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== key);
+  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
@@ -101,33 +91,28 @@ export default function AgentPage({
 
       {/* back */}
       <div className="mb-6 md:mb-8">
-        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90" style={{ WebkitTapHighlightColor: 'transparent' }}>
+        <Link href="/agents" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
           ← Revenir aux agents
         </Link>
       </div>
 
       {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel — variables CSS pour placer la tête AU PLUS HAUT */}
-        <div className="relative h-[380px] sm:h-[440px] md:h-[560px] lg:h-[620px]">
+        {/* Visuel */}
+        <div className="relative h-[400px] sm:h-[480px] md:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="
-              object-contain select-none pointer-events-none origin-bottom
-              [--y:-150px] sm:[--y:-160px] md:[--y:-78px] lg:[--y:-68px]
-              [--s:1.38] md:[--s:1.33]
-            "
-            style={{
-              transform: 'translateY(var(--y)) scale(var(--s))',
-              objectPosition: 'center bottom',
-            }}
+            className="object-contain pointer-events-none transform
+                       -translate-y-[140px] md:-translate-y-[10px]
+                       scale-[1.36] md:scale-[1.28]"
+            style={{ objectPosition: 'center bottom' }}
           />
         </div>
 
-        {/* Infos */}
+        {/* Infos + CTA (lien simple vers /contact) */}
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
@@ -138,7 +123,6 @@ export default function AgentPage({
               href={`/contact?agent=${encodeURIComponent(current.name)}`}
               className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
                          bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               Parler de cet agent →
             </Link>
@@ -146,7 +130,7 @@ export default function AgentPage({
         </div>
       </div>
 
-      {/* Détails : 3 cartes */}
+      {/* Détails */}
       <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
         <Card title="Pourquoi c’est utile" items={current.why} />
         <Card title="Ça marche avec" items={current.stacks} />
@@ -164,15 +148,8 @@ export default function AgentPage({
                 key={k}
                 href={`/agents/${k}`}
                 className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <Image
-                  src={a.avatar}
-                  alt={a.name}
-                  width={40}
-                  height={40}
-                  className="rounded-full ring-1 ring-white/10 object-cover"
-                />
+                <Image src={a.avatar} alt={a.name} width={40} height={40} className="rounded-full ring-1 ring-white/10 object-cover" />
                 <div>
                   <div className="font-medium">{a.name}</div>
                   <div className="text-xs text-muted">{a.subtitle}</div>
@@ -186,15 +163,12 @@ export default function AgentPage({
   );
 }
 
-/* — sous-composant — */
 function Card({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="glass rounded-2xl p-6">
       <h2 className="font-medium mb-3">{title}</h2>
       <ul className="list-disc pl-5 space-y-1 text-muted">
-        {items.map((x, i) => (
-          <li key={i}>{x}</li>
-        ))}
+        {items.map((x, i) => <li key={i}>{x}</li>)}
       </ul>
     </div>
   );
