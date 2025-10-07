@@ -92,7 +92,7 @@ export default function AgentPage({
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 py-20">
-      {/* halo discret – reste dans le fond */}
+      {/* halo discret */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
@@ -108,19 +108,17 @@ export default function AgentPage({
 
       {/* HERO : visuel sans cadre à gauche, infos à droite */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Visuel — plus de carte, juste le fond du site */}
-        <div className="relative h-[500px] sm:h-[560px] md:h-[620px]">
+        {/* Visuel — mobile : bloc moins haut + perso remonté */}
+        <div className="relative h-[440px] sm:h-[520px] md:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain select-none pointer-events-none"
-            style={{
-              objectPosition: 'center bottom',
-              transform: 'translateY(6px) scale(1.28)', /* +grand qu’avant */
-              transformOrigin: 'bottom',
-            }}
+            className="object-contain select-none pointer-events-none transform
+                       translate-y-[-28px] md:translate-y-[6px]
+                       scale-[1.30] md:scale-[1.28]"
+            style={{ objectPosition: 'center bottom' }}
           />
         </div>
 
