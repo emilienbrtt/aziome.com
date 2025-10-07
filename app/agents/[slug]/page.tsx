@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import ChatCTA from './ChatCTA';
 
 type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
@@ -106,47 +107,34 @@ export default function AgentPage({
         </Link>
       </div>
 
-      {/* HERO */}
+      {/* HERO : visuel gauche / infos droite */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel — variables CSS pour placer la tête AU PLUS HAUT */}
-        <div className="relative h-[380px] sm:h-[440px] md:h-[560px] lg:h-[620px]">
+        <div className="relative h-[400px] sm:h-[480px] md:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="
-              object-contain select-none pointer-events-none origin-bottom
-              [--y:-150px] sm:[--y:-160px] md:[--y:-78px] lg:[--y:-68px]
-              [--s:1.38] md:[--s:1.33]
-            "
-            style={{
-              transform: 'translateY(var(--y)) scale(var(--s))',
-              objectPosition: 'center bottom',
-            }}
+            className="object-contain select-none pointer-events-none transform
+                       translate-y-[-96px] md:translate-y-[6px]
+                       scale-[1.34] md:scale-[1.28]"
+            style={{ objectPosition: 'center bottom' }}
           />
         </div>
 
-        {/* Infos */}
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
 
           <div className="mt-8">
-            <Link
-              href={`/contact?agent=${encodeURIComponent(current.name)}`}
-              className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                         bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              Parler de cet agent →
-            </Link>
+            {/* 👉 bouton qui ouvre le chat avec le bon agent */}
+            <ChatCTA agentName={current.name} />
           </div>
         </div>
       </div>
 
-      {/* Détails : 3 cartes */}
+      {/* Détails */}
       <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
         <Card title="Pourquoi c’est utile" items={current.why} />
         <Card title="Ça marche avec" items={current.stacks} />
