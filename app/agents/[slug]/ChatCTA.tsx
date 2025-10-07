@@ -10,12 +10,14 @@ export default function ChatCTA({ agentName }: Props) {
     try {
       if (typeof window !== 'undefined' && (window as any).$crisp) {
         const w = window as any;
+        // Segment pour router côté Crisp (optionnel)
         w.$crisp.push(['set', 'session:segments', [[`agent-${agentName.toLowerCase()}`]]]);
+        // Ouvrir + message pré-rempli
         w.$crisp.push(['do', 'chat:open']);
         w.$crisp.push(['do', 'message:show', ['text', prefill]]);
         return;
       }
-    } catch { /* ignore */ }
+    } catch {}
 
     // 2) INTERCOM (si présent)
     try {
@@ -26,9 +28,9 @@ export default function ChatCTA({ agentName }: Props) {
         w.Intercom('showNewMessage', prefill);
         return;
       }
-    } catch { /* ignore */ }
+    } catch {}
 
-    // 3) Fallback : page Contact préremplie
+    // 3) Fallback : page Contact pré-remplie
     if (typeof window !== 'undefined') {
       window.location.href = `/contact?agent=${encodeURIComponent(agentName)}`;
     }
@@ -36,10 +38,12 @@ export default function ChatCTA({ agentName }: Props) {
 
   return (
     <button
+      type="button"
       onClick={openChat}
-      className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                 bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow
-                 hover:shadow-lg transition"
+      className="mt-6 inline-flex items-center rounded-md px-4 py-2 font-medium text-black
+                 bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
+      aria-label={`Parler à l’agent ${agentName}`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       Parler à cet agent →
     </button>
