@@ -1,8 +1,7 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
@@ -24,7 +23,11 @@ const AGENTS: Record<
     avatar: '/agents/max.png',
     intro:
       'Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.',
-    why: ['Vous récupérez des ventes perdues.', 'Plus de clients reviennent acheter.', 'Messages clairs, au bon moment.'],
+    why: [
+      'Vous récupérez des ventes perdues.',
+      'Plus de clients reviennent acheter.',
+      'Messages clairs, au bon moment.',
+    ],
     stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
     youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
   },
@@ -34,7 +37,11 @@ const AGENTS: Record<
     avatar: '/agents/lea.png',
     intro:
       'Répond vite et clairement, suit les commandes et transfère à un humain si besoin.',
-    why: ['Moins d’attente pour vos clients', 'Moins de charge pour l’équipe', 'Vous gardez la main à tout moment'],
+    why: [
+      'Moins d’attente pour vos clients',
+      'Moins de charge pour l’équipe',
+      'Vous gardez la main à tout moment',
+    ],
     stacks: ['Email, chat, WhatsApp', 'Gorgias, Zendesk, Freshdesk', 'Shopify, WooCommerce'],
     youSee: ['Temps de réponse moyen', 'Demandes résolues par l’agent', 'Satisfaction client'],
   },
@@ -44,7 +51,11 @@ const AGENTS: Record<
     avatar: '/agents/jules.png',
     intro:
       'Met vos chiffres sur une page simple, alerte en cas d’anomalie, répond aux questions (“Combien hier ?”).',
-    why: ['Vous savez où vous en êtes chaque jour', 'Vous repérez les soucis tout de suite', 'Moins de fichiers, plus de clarté'],
+    why: [
+      'Vous savez où vous en êtes chaque jour',
+      'Vous repérez les soucis tout de suite',
+      'Moins de fichiers, plus de clarté',
+    ],
     stacks: ['Shopify / WooCommerce', 'Gorgias / Zendesk', 'Google Sheets, Looker, Notion'],
     youSee: ['Tableau à jour', 'Alertes email / Slack', 'Résumé hebdomadaire'],
   },
@@ -54,7 +65,11 @@ const AGENTS: Record<
     avatar: '/agents/mia.png',
     intro:
       'Accueille chaque demande, pose les bonnes questions et oriente vers la bonne personne.',
-    why: ['Réponses immédiates, 24h/24', 'Moins d’appels ou emails perdus', 'Parcours client plus fluide'],
+    why: [
+      'Réponses immédiates, 24h/24',
+      'Moins d’appels ou emails perdus',
+      'Parcours client plus fluide',
+    ],
     stacks: ['Chat du site, formulaire, email', 'WhatsApp, Facebook/Instagram', 'Transcriptions d’appels, Slack'],
     youSee: ['Demandes prises en charge', 'Catégories & motifs récurrents', 'Taux de transfert vers humain'],
   },
@@ -64,20 +79,36 @@ const AGENTS: Record<
     avatar: '/agents/chris.png',
     intro:
       'Prend en charge les demandes internes (attestations, absences), prépare les documents et répond aux questions.',
-    why: ['Moins d’administratif pour les RH', 'Réponses rapides pour les équipes', 'Moins d’erreurs et de retards'],
+    why: [
+      'Moins d’administratif pour les RH',
+      'Réponses rapides pour les équipes',
+      'Moins d’erreurs et de retards',
+    ],
     stacks: ['Google Workspace/Drive, Notion', 'Slack ou Microsoft Teams', 'Outils SIRH (placeholders)'],
     youSee: ['Demandes traitées', 'Documents générés', 'Délai moyen de réponse'],
   },
 };
 
-export async function generateMetadata({ params }: { params: { slug: AgentKey } }): Promise<Metadata> {
-  const a = AGENTS[params.slug];
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug?: AgentKey; limace?: AgentKey };
+}): Promise<Metadata> {
+  const key = (params.slug ?? params.limace) as AgentKey | undefined;
+  const a = key ? AGENTS[key] : undefined;
   return { title: `${a?.name ?? 'Agent'} — Aziome` };
 }
 
-export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
-  const current = AGENTS[params.slug];
-  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
+export default function AgentPage({
+  params,
+}: {
+  params: { slug?: AgentKey; limace?: AgentKey };
+}) {
+  const key = (params.slug ?? params.limace) as AgentKey | undefined;
+  const current = key ? AGENTS[key] : undefined;
+  if (!current) return notFound();
+
+  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== key);
 
   return (
     <section className="relative max-w-6xl mx-auto px-6 py-20">
@@ -85,7 +116,10 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-30 blur-3xl"
-        style={{ background: 'radial-gradient(ellipse at center, var(--glow), transparent 60%)' }}
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(212,175,55,0.18), transparent 60%)',
+        }}
       />
 
       {/* back */}
@@ -102,7 +136,10 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
           <div
             aria-hidden
             className="absolute -inset-6 rounded-[28px] blur-2xl opacity-70"
-            style={{ background: 'radial-gradient(60% 50% at 50% 35%, rgba(212,175,55,0.18), rgba(0,0,0,0))' }}
+            style={{
+              background:
+                'radial-gradient(60% 50% at 50% 35%, rgba(212,175,55,0.18), rgba(0,0,0,0))',
+            }}
           />
           <div className="relative rounded-3xl ring-1 ring-white/12 bg-black/80 p-4 h-[480px] sm:h-[540px] md:h-[580px]">
             <div className="relative w-full h-full">
@@ -151,12 +188,12 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
       <div className="mt-12">
         <h3 className="text-base font-medium mb-4">Explorer les autres agents</h3>
         <div className="flex gap-4 overflow-x-auto pb-2">
-          {others.map((key) => {
-            const a = AGENTS[key];
+          {others.map((k) => {
+            const a = AGENTS[k];
             return (
               <Link
-                key={key}
-                href={`/agents/${key}`}
+                key={k}
+                href={`/agents/${k}`}
                 className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
               >
                 <Image
