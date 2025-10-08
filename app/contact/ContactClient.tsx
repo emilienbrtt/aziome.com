@@ -1,14 +1,16 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, type FormEvent } from 'react';
 
 export default function ContactClient({ defaultAgent = '' }: { defaultAgent?: string }) {
-  const [state, setState] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
-  const [error, setError] = useState<string>('');
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setState('sending');
-    setError('');
+    setSending(true);
+    setError(null);
 
     const form = new FormData(e.currentTarget);
     const payload = {
@@ -25,70 +27,36 @@ export default function ContactClient({ defaultAgent = '' }: { defaultAgent?: st
       body: JSON.stringify(payload),
     });
 
+    setSending(false);
     if (res.ok) {
-      setState('ok');
+      setDone(true);
       (e.currentTarget as HTMLFormElement).reset();
     } else {
       const t = await res.text().catch(() => '');
-      setError(t || 'Une erreur est survenue.');
-      setState('error');
+      setError(t || 'Échec de l’envoi. Réessayez.');
     }
   }
 
+  if (done) {
+    return <div className="rounded-lg border border-white/10 p-4">Merci ! Votre message a été envoyé.</div>;
+  }
+
   return (
-    <form onSubmit={onSubmit} className="mt-6 grid gap-4 max-w-xl">
-      <input name="agent" type="hidden" defaultValue={defaultAgent} />
-
-      <label className="grid gap-1">
-        <span className="text-sm text-muted">Nom</span>
-        <input
-          name="name"
-          required
-          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
-        />
-      </label>
-
-      <label className="grid gap-1">
-        <span className="text-sm text-muted">Email</span>
-        <input
-          name="email"
-          type="email"
-          required
-          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
-        />
-      </label>
-
-      <label className="grid gap-1">
-        <span className="text-sm text-muted">Entreprise (facultatif)</span>
-        <input
-          name="company"
-          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
-        />
-      </label>
-
-      <label className="grid gap-1">
-        <span className="text-sm text-muted">Message</span>
-        <textarea
-          name="message"
-          required
-          rows={5}
-          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
-        />
-      </label>
-
-      <div className="flex items-center gap-4">
-        <button
-          disabled={state === 'sending'}
-          className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                     bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
-                     shadow hover:shadow-lg disabled:opacity-60"
-        >
-          {state === 'sending' ? 'Envoi…' : 'Envoyer'}
-        </button>
-
-        {state === 'ok' && <span className="text-green-400 text-sm">Message envoyé ✔</span>}
-        {state === 'error' && <span className="text-red-400 text-sm">{error}</span>}
-      </div>
+    <form onSubmit={onSubmit} className="grid gap-4">
+      <input name="name" placeholder="Votre nom" required className="bg-black/30 rounded-md p-3 border border-white/10" />
+      <input name="email" placeholder="Votre email" type="email" required className="bg-black/30 rounded-md p-3 border border-white/10" />
+      <input name="company" placeholder="Entreprise (optionnel)" className="bg-black/30 rounded-md p-3 border border-white/10" />
+      <input name="agent" placeholder="Agent" defaultValue={defaultAgent} className="bg-black/30 rounded-md p-3 border border-white/10" />
+      <textarea name="message" placeholder="Votre message…" required rows={6} className="bg-black/30 rounded-md p-3 border border-white/10" />
+      {error && <div className="text-red-400 text-sm">{error}</div>}
+      <button
+        type="submit"
+        disabled={sending}
+        className="inline-flex items-center justify-center rounded-md px-4 py-2 font-medium text-black
+                   bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition disabled:opacity-60"
+      >
+        {sending ? 'Envoi…' : 'Envoyer'}
+      </button>
     </form>
   );
 }
