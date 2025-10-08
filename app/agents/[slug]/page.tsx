@@ -119,16 +119,16 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
 
       {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel */}
-        <div className="relative h-[400px] sm:h-[480px] md:h-[620px]">
+        {/* Visuel — remonté sur mobile pour ne pas chevaucher les textes */}
+        <div className="relative h-[500px] sm:h-[560px] md:h-[620px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain pointer-events-none transform
-                       -translate-y-[140px] md:-translate-y-[10px]
-                       scale-[1.36] md:scale-[1.28]"
+            className="object-contain pointer-events-none select-none
+                       -translate-y-[180px] sm:-translate-y-[200px] md:-translate-y-[10px]
+                       scale-[1.34] md:scale-[1.28]"
             style={{ objectPosition: 'center bottom' }}
           />
         </div>
