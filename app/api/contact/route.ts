@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const CONTACT_TO      = process.env.CONTACT_TO || 'aziome.agency@gmail.com';
-const CONTACT_FROM    = process.env.CONTACT_FROM || 'Aziome <noreply@aziome.com>';
+const CONTACT_TO      = (process.env.CONTACT_TO || 'aziome.agency@gmail.com').trim();
+const CONTACT_FROM    = (process.env.CONTACT_FROM || 'Aziome <onboarding@resend.dev>').trim();
 
 export async function POST(req: Request) {
   try {
@@ -15,8 +15,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'RESEND_API_KEY manquante.' }, { status: 500 });
     }
 
-    const subject =
-      `[Contact] ${agent ? `Agent ${agent} — ` : ''}${name} <${email}>`;
+    // Nettoie/valide la ou les adresses destinataires
+    const toList = CONTACT_TO
+      .split(',')               // autorise une liste séparée par des virgules si tu en mets plusieurs
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (toList.length === 0 || !toList[0].includes('@')) {
+      return NextResponse.json({ error: 'CONTACT_TO invalide.' }, { status: 500 });
+    }
+
+    const subject = `[Contact] ${agent ? `Agent ${agent} — ` : ''}${name} <${email}>`;
 
     const html = `
       <div style="font-family:ui-sans-serif,sans-serif;line-height:1.5">
@@ -28,7 +37,6 @@ export async function POST(req: Request) {
         <p style="white-space:pre-wrap"><b>Message</b><br>${escapeHtml(message)}</p>
       </div>`;
 
-    // Appel API Resend (aucun await en dehors de POST)
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -36,8 +44,8 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: CONTACT_FROM,
-        to: CONTACT_TO,
+        from: CONTACT_FROM,      // temporairement onboarding@resend.dev
+        to: toList,              // <-- le "to" est bien un tableau d’adresses
         subject,
         html,
         reply_to: email,
