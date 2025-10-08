@@ -117,19 +117,21 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
         </Link>
       </div>
 
-      {/* HERO */}
+      {/* HERO : desktop centré, mobile un peu remonté */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel — remonté sur mobile pour ne pas chevaucher les textes */}
-        <div className="relative h-[500px] sm:h-[560px] md:h-[620px]">
+        {/* Visuel */}
+        <div className="relative h-[460px] sm:h-[500px] md:h-[560px] lg:h-[600px]">
           <Image
             src={current.avatar}
             alt={current.name}
             fill
             priority
-            className="object-contain pointer-events-none select-none
-                       -translate-y-[180px] sm:-translate-y-[200px] md:-translate-y-[10px]
-                       scale-[1.34] md:scale-[1.28]"
-            style={{ objectPosition: 'center bottom' }}
+            className="
+              object-contain pointer-events-none select-none
+              -translate-y-[120px] sm:-translate-y-[140px] md:translate-y-0
+              scale-[1.24] md:scale-[1.18]"
+            /* centre verticalement sur desktop pour qu'il ne touche ni le haut ni les cartes */
+            style={{ objectPosition: 'center center' }}
           />
         </div>
 
@@ -138,12 +140,14 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
-          <ChatCTA agentName={current.name} />
+          <div className="mt-6">
+            <ChatCTA agentName={current.name} />
+          </div>
         </div>
       </div>
 
       {/* Détails */}
-      <div className="mt-10 grid md:grid-cols-3 gap-6 text-sm">
+      <div className="mt-12 md:mt-14 grid md:grid-cols-3 gap-6 text-sm">
         <Card title="Pourquoi c’est utile" items={current.why} />
         <Card title="Ça marche avec" items={current.stacks} />
         <Card title="Ce que vous voyez" items={current.youSee} />
