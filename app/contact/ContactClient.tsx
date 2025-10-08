@@ -1,23 +1,22 @@
 'use client';
-
 import { useState } from 'react';
 
 export default function ContactClient({ defaultAgent = '' }: { defaultAgent?: string }) {
-  const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+  const [error, setError] = useState<string>('');
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSending(true); setError(null);
+    setState('sending');
+    setError('');
 
     const form = new FormData(e.currentTarget);
     const payload = {
-      name:   String(form.get('name') || ''),
-      email:  String(form.get('email') || ''),
-      company:String(form.get('company') || ''),
-      agent:  String(form.get('agent') || ''),
-      message:String(form.get('message') || ''),
+      name: String(form.get('name') || ''),
+      email: String(form.get('email') || ''),
+      company: String(form.get('company') || ''),
+      agent: String(form.get('agent') || defaultAgent),
+      message: String(form.get('message') || ''),
     };
 
     const res = await fetch('/api/contact', {
@@ -26,64 +25,70 @@ export default function ContactClient({ defaultAgent = '' }: { defaultAgent?: st
       body: JSON.stringify(payload),
     });
 
-    setSending(false);
-    if (res.ok) { setDone(true); (e.currentTarget as HTMLFormElement).reset(); }
-    else {
+    if (res.ok) {
+      setState('ok');
+      (e.currentTarget as HTMLFormElement).reset();
+    } else {
       const t = await res.text().catch(() => '');
-      setError(t || 'Échec de l’envoi. Réessayez.');
+      setError(t || 'Une erreur est survenue.');
+      setState('error');
     }
   }
 
-  if (done) {
-    return (
-      <div className="rounded-2xl p-6 border border-white/10 bg-white/5">
-        <div className="text-lg font-medium">Message envoyé ✅</div>
-        <div className="text-muted mt-1">Merci ! Nous revenons vers vous très vite.</div>
-        <button className="mt-4 underline" onClick={() => setDone(false)}>Envoyer un autre message</button>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl p-6 border border-white/10 bg-white/5 space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm mb-1">Nom</label>
-          <input name="name" required className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2"/>
-        </div>
-        <div>
-          <label className="block text-sm mb-1">E-mail</label>
-          <input name="email" type="email" required className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2"/>
-        </div>
+    <form onSubmit={onSubmit} className="mt-6 grid gap-4 max-w-xl">
+      <input name="agent" type="hidden" defaultValue={defaultAgent} />
+
+      <label className="grid gap-1">
+        <span className="text-sm text-muted">Nom</span>
+        <input
+          name="name"
+          required
+          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
+        />
+      </label>
+
+      <label className="grid gap-1">
+        <span className="text-sm text-muted">Email</span>
+        <input
+          name="email"
+          type="email"
+          required
+          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
+        />
+      </label>
+
+      <label className="grid gap-1">
+        <span className="text-sm text-muted">Entreprise (facultatif)</span>
+        <input
+          name="company"
+          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
+        />
+      </label>
+
+      <label className="grid gap-1">
+        <span className="text-sm text-muted">Message</span>
+        <textarea
+          name="message"
+          required
+          rows={5}
+          className="rounded-md bg-black/20 border border-white/10 px-3 py-2"
+        />
+      </label>
+
+      <div className="flex items-center gap-4">
+        <button
+          disabled={state === 'sending'}
+          className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
+                     bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
+                     shadow hover:shadow-lg disabled:opacity-60"
+        >
+          {state === 'sending' ? 'Envoi…' : 'Envoyer'}
+        </button>
+
+        {state === 'ok' && <span className="text-green-400 text-sm">Message envoyé ✔</span>}
+        {state === 'error' && <span className="text-red-400 text-sm">{error}</span>}
       </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm mb-1">Entreprise (optionnel)</label>
-          <input name="company" className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2"/>
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Agent</label>
-          <input name="agent" defaultValue={defaultAgent} className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2"/>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Message</label>
-        <textarea name="message" required rows={6} className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2"/>
-      </div>
-
-      {error && <div className="text-red-400 text-sm">{error}</div>}
-
-      <button
-        type="submit"
-        disabled={sending}
-        className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                   bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg
-                   disabled:opacity-60 transition"
-      >
-        {sending ? 'Envoi…' : 'Envoyer'}
-      </button>
     </form>
   );
 }
