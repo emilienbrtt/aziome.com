@@ -1,11 +1,9 @@
-'use client';
-
-import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import ContactClient from './ContactClient';
 
-// Transforme "Léa" -> "lea", "Max" -> "max", etc.
+// Transforme "Léa" -> "lea", "Max" -> "max"
 function toSlug(name?: string | null) {
-  if (!name) return null;
+  if (!name) return '';
   return name
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -13,33 +11,26 @@ function toSlug(name?: string | null) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-export default function Page() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const agent = searchParams.get('agent') ?? '';
+export default function Page({
+  searchParams,
+}: {
+  searchParams?: { agent?: string };
+}) {
+  const agent = searchParams?.agent ?? '';
   const slug = toSlug(agent);
-  const fallback = slug ? `/agents/${slug}` : '/#solutions';
+  const backHref = slug ? `/agents/${slug}` : '/#solutions';
   const title = agent ? `Parler de l’agent ${agent}` : 'Parler d’un agent';
-
-  const goBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();                   // revient vraiment à la page précédente
-    } else {
-      router.push(fallback);           // sinon, renvoie vers la bonne fiche agent
-    }
-  };
 
   return (
     <section className="relative max-w-2xl mx-auto px-6 py-10 md:py-16">
-      {/* Bouton retour */}
+      {/* Bouton retour (lien simple, fiable en build) */}
       <div className="mb-6">
-        <button
-          onClick={goBack}
+        <Link
+          href={backHref}
           className="text-sm text-[color:var(--gold-1)] hover:opacity-90"
         >
           ← Revenir
-        </button>
+        </Link>
       </div>
 
       <h1 className="text-3xl md:text-4xl font-semibold">{title}</h1>
