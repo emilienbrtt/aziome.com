@@ -8,21 +8,52 @@ const STORAGE_KEY = 'cookie-consent-v1';
 export default function CookieConsent() {
   const [open, setOpen] = useState(false);
 
-  // Afficher la bannière seulement si aucun choix n'a été enregistré
+  // Show the banner only if no choice saved yet
   useEffect(() => {
     try {
       const val = localStorage.getItem(STORAGE_KEY);
       if (!val) setOpen(true);
     } catch {
-      // ignore
+      /* ignore */
     }
   }, []);
+
+  // While banner is open: hide chat launcher(s) so the banner is always clickable
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+
+    try {
+      // CRISP
+      if (w.$crisp) {
+        if (open) w.$crisp.push(['do', 'chat:hide']);
+        else w.$crisp.push(['do', 'chat:show']);
+      }
+      // INTERCOM
+      if (w.Intercom) {
+        // Toggle launcher visibility without opening the messenger
+        w.Intercom('update', { hide_default_launcher: open });
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // On unmount, ensure chat launchers are restored
+    return () => {
+      try {
+        if (w.$crisp) w.$crisp.push(['do', 'chat:show']);
+        if (w.Intercom) w.Intercom('update', { hide_default_launcher: false });
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [open]);
 
   const decide = (v: 'accepted' | 'rejected') => {
     try {
       localStorage.setItem(STORAGE_KEY, v);
     } catch {
-      // ignore
+      /* ignore */
     }
     setOpen(false);
   };
@@ -30,7 +61,8 @@ export default function CookieConsent() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-3 z-50 px-4">
+    // Put the banner above everything (even most chat widgets)
+    <div className="fixed inset-x-0 bottom-3 z-[2147483647] px-4">
       <div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-black/75 backdrop-blur p-4 md:p-5 shadow-lg">
         <p className="text-sm text-white/90">
           Nous utilisons des cookies essentiels pour faire fonctionner le site.
