@@ -49,7 +49,7 @@ export default function Hero() {
         <div className="mt-12 text-sm text-muted flex items-center justify-center gap-6 opacity-80">
           <span>Compatible avec vos outils</span>
           <span className="h-1 w-1 rounded-full bg-muted inline-block" />
-          <span>Shopify · HubSpot · Notion · n8n</span>
+          <span>Shopify · Gmail · Notion · WhatsApp</span>
         </div>
       </div>
 
