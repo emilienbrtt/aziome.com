@@ -1,86 +1,76 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, X } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { MessageCircle, Send, X } from 'lucide-react';
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: 'user' | 'assistant'; content: string };
+const STORAGE_KEY = 'cookie-consent-v1';
 
 export default function ChatWidget() {
+  const [allowed, setAllowed] = useState(false); // ⬅️ rendu conditionné au consentement
   const [open, setOpen] = useState(false);
-  // ⬇️ Toujours visible tant que la fenêtre est fermée
   const [hintVisible, setHintVisible] = useState(true);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Charger le threadId depuis le navigateur
+  // Lire le consentement
   useEffect(() => {
-    const saved =
-      typeof window !== "undefined" ? localStorage.getItem("aziome_thread_id") : null;
+    try {
+      const v = localStorage.getItem(STORAGE_KEY);
+      if (v === 'accepted') setAllowed(true);
+    } catch {}
+    // Écoute les changements cross-tabs (quand l’utilisateur clique sur la bannière)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) setAllowed(e.newValue === 'accepted');
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  // Charger threadId depuis le navigateur
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('aziome_thread_id') : null;
     if (saved) setThreadId(saved);
   }, []);
 
-  // Sauvegarder dès qu’il change
+  // Sauvegarder threadId
   useEffect(() => {
-    if (threadId) localStorage.setItem("aziome_thread_id", threadId);
+    if (threadId) localStorage.setItem('aziome_thread_id', threadId);
   }, [threadId]);
 
-  // ⛔️ SUPPRIMÉ : auto-hide du hint après 10s (il doit rester visible)
-  // useEffect(() => {
-  //   if (!open && hintVisible) {
-  //     const t = setTimeout(() => setHintVisible(false), 10000);
-  //     return () => clearTimeout(t);
-  //   }
-  // }, [open, hintVisible]);
-
-  // Scroll au bas à chaque nouveau message
+  // Scroll bas
   useEffect(() => {
-    listRef.current?.scrollTo({
-      top: listRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [msgs, open, loading]);
 
   async function send() {
     if (!input.trim() || loading) return;
     const question = input.trim();
 
-    setInput("");
-    setMsgs((m) => [...m, { role: "user", content: question }]);
+    setInput('');
+    setMsgs((m) => [...m, { role: 'user', content: question }]);
     setLoading(true);
 
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: question,
-          threadId, // on envoie le thread courant (ou null)
-        }),
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, threadId }),
       });
-
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = (await r.json()) as { reply?: string; threadId?: string; error?: string };
-
       if (data.threadId && !threadId) setThreadId(data.threadId);
-
       const reply =
-        data.reply ??
-        data.error ??
-        "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.";
-
-      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
+        data.reply ?? data.error ?? "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.";
+      setMsgs((m) => [...m, { role: 'assistant', content: reply }]);
     } catch (e) {
       console.error(e);
       setMsgs((m) => [
         ...m,
-        {
-          role: "assistant",
-          content:
-            "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.",
-        },
+        { role: 'assistant', content: "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant." },
       ]);
     } finally {
       setLoading(false);
@@ -88,32 +78,34 @@ export default function ChatWidget() {
   }
 
   function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") send();
+    if (e.key === 'Enter') send();
   }
 
   function openChat() {
     setOpen(true);
-    // On peut masquer l’étiquette quand on ouvre la fenêtre…
     setHintVisible(false);
   }
 
+  // ⛔️ Tant que l’utilisateur n’a pas accepté les cookies, on ne rend PAS le widget
+  if (!allowed) return null;
+
   return (
-    <>
-      {/* --- Bulle + petit onglet quand la fenêtre est fermée --- */}
+    <div id="aziome-chat">
+      {/* --- Bulle + étiquette quand fermé --- */}
       {!open && (
         <>
           {hintVisible && (
             <button
               onClick={openChat}
               className="
-                fixed right-24 bottom-10 z-[2147483647]    /* ⬅️ z-index max */
+                fixed right-24 bottom-10 z-[2147483640]
                 rounded-full border border-[color:var(--gold-2,#f5c66a)]/30
                 bg-black/70 px-3 py-1.5 text-xs text-[color:var(--gold-2,#f5c66a)]
                 shadow-lg backdrop-blur hover:bg-black/60 transition
               "
               style={{
-                right: "max(6rem, env(safe-area-inset-right))", // safe-area iOS
-                bottom: "max(2.5rem, env(safe-area-inset-bottom))",
+                right: 'max(6rem, env(safe-area-inset-right))',
+                bottom: 'max(2.5rem, env(safe-area-inset-bottom))',
               }}
             >
               Besoin d’aide ?
@@ -124,7 +116,7 @@ export default function ChatWidget() {
             aria-label="Ouvrir le chat"
             onClick={openChat}
             className="
-              fixed right-6 bottom-6 z-[2147483647]       /* ⬅️ z-index max */
+              fixed right-6 bottom-6 z-[2147483640]
               h-14 w-14 rounded-full
               border border-[color:var(--gold-2,#f5c66a)]/30
               bg-[color:var(--gold-1,#ffd37a)] text-black
@@ -132,8 +124,8 @@ export default function ChatWidget() {
               hover:shadow-[0_0_48px_rgba(212,175,55,0.35)] transition
             "
             style={{
-              right: "max(1.5rem, env(safe-area-inset-right))",
-              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+              right: 'max(1.5rem, env(safe-area-inset-right))',
+              bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
             }}
           >
             <MessageCircle className="mx-auto h-6 w-6" />
@@ -145,20 +137,18 @@ export default function ChatWidget() {
       {open && (
         <div
           className="
-            fixed right-6 bottom-6 z-[2147483647]        /* ⬅️ z-index max */
+            fixed right-6 bottom-6 z-[2147483640]
             w-[360px] max-w-[92vw]
             rounded-2xl border border-[color:var(--gold-2,#f5c66a)]/25
             bg-black/80 backdrop-blur p-4 shadow-2xl
           "
           style={{
-            right: "max(1.5rem, env(safe-area-inset-right))",
-            bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+            right: 'max(1.5rem, env(safe-area-inset-right))',
+            bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
           }}
         >
           <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">
-              Aziome Assistant
-            </h4>
+            <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">Aziome Assistant</h4>
             <button
               aria-label="Fermer le chat"
               onClick={() => setOpen(false)}
@@ -170,18 +160,16 @@ export default function ChatWidget() {
 
           <div ref={listRef} className="mb-3 h-64 space-y-3 overflow-y-auto pr-2">
             {msgs.length === 0 && (
-              <p className="text-xs text-neutral-400">
-                Pose-moi une question sur vos besoins (SAV, CRM, Reporting…).
-              </p>
+              <p className="text-xs text-neutral-400">Pose-moi une question sur vos besoins (SAV, CRM, Reporting…).</p>
             )}
 
             {msgs.map((m, i) => (
               <div
                 key={i}
                 className={
-                  m.role === "user"
-                    ? "ml-auto max-w-[85%] rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
-                    : "max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm"
+                  m.role === 'user'
+                    ? 'ml-auto max-w-[85%] rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm'
+                    : 'max-w-[85%] rounded-xl border border-[color:var(--gold-2,#f5c66a)]/20 bg-neutral-950 px-3 py-2 text-sm'
                 }
               >
                 {m.content}
@@ -222,6 +210,6 @@ export default function ChatWidget() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
