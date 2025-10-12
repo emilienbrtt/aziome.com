@@ -8,7 +8,7 @@ const STORAGE_KEY = 'cookie-consent-v1';
 export default function CookieConsent() {
   const [open, setOpen] = useState(false);
 
-  // 1) Afficher la bannière seulement si aucun choix n'a été enregistré
+  // Afficher la bannière seulement si aucun choix n'est enregistré
   useEffect(() => {
     try {
       const val = localStorage.getItem(STORAGE_KEY);
@@ -18,7 +18,7 @@ export default function CookieConsent() {
     }
   }, []);
 
-  // 2) Pendant que la bannière est ouverte, masquer les launchers de chat
+  // Pendant que la bannière est ouverte, on peut aussi forcer le masquage global
   useEffect(() => {
     const root = document.documentElement;
     if (open) root.classList.add('cookies-open');
@@ -29,6 +29,8 @@ export default function CookieConsent() {
   const decide = (v: 'accepted' | 'rejected') => {
     try {
       localStorage.setItem(STORAGE_KEY, v);
+      // informer les autres onglets/composants (si besoin)
+      window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: v }));
     } catch {
       // ignore
     }
@@ -39,7 +41,7 @@ export default function CookieConsent() {
 
   return (
     <>
-      {/* Masque les principaux widgets de chat tant que la bannière est visible */}
+      {/* 1) Tant que la bannière est ouverte, on camoufle aussi certains widgets tiers connus */}
       <style jsx global>{`
         .cookies-open #crisp-chatbox,
         .cookies-open .crisp-client,
@@ -52,11 +54,16 @@ export default function CookieConsent() {
           opacity: 0 !important;
           pointer-events: none !important;
         }
+        /* 2) Notre chat custom est aussi masqué via son wrapper dédié */
+        .cookies-open #aziome-chat {
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
       `}</style>
 
-      {/* 3) Bannière cookies au premier plan, safe-area iOS ok */}
+      {/* 3) Bannière tout en haut de la pile (z-index > chat) + respect du safe-area mobile */}
       <div
-        className="fixed inset-x-0 px-4 z-[2147483647]"
+        className="fixed inset-x-0 px-4 z-[2147483650]"
         style={{ bottom: 'max(12px, env(safe-area-inset-bottom))' }}
         role="dialog"
         aria-live="polite"
