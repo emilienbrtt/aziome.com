@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -39,14 +39,31 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 export default function Solutions() {
   const [current, setCurrent] = useState(0);
+  const [anim, setAnim] = useState<null | 'next' | 'prev'>(null);
+  const isAnimating = anim !== null;
+  const ANIM_MS = 520; // doit correspondre aux durations CSS
   const n = CARDS.length;
 
   const idxLeft   = mod(current - 1, n);
   const idxCenter = current;
   const idxRight  = mod(current + 1, n);
 
-  const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
-  const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
+  const goNext = useCallback(() => {
+    if (isAnimating) return;
+    setAnim('next');
+    window.setTimeout(() => {
+      setCurrent((c) => mod(c + 1, n));
+      setAnim(null);
+    }, ANIM_MS);
+  }, [isAnimating, n]);
+  const goPrev = useCallback(() => {
+    if (isAnimating) return;
+    setAnim('prev');
+    window.setTimeout(() => {
+      setCurrent((c) => mod(c - 1, n));
+      setAnim(null);
+    }, ANIM_MS);
+  }, [isAnimating, n]);
 
   // Swipe mobile simple et robuste
   const touchStartX = useRef<number | null>(null);
@@ -147,47 +164,107 @@ export default function Solutions() {
     );
   }
 
-  /* ===== Visible ===== */
-  const visible = [
+  /* ===== Visible (contenus) ===== */
+  const visible = useMemo(() => [
     { data: CARDS[idxLeft],   role: 'left' as const },
     { data: CARDS[idxCenter], role: 'center' as const },
     { data: CARDS[idxRight],  role: 'right' as const },
-  ];
+  ], [idxLeft, idxCenter, idxRight]);
+
+  /* ===== Animation roulette (desktop) ===== */
+  const mapRole = useCallback((role: 'left'|'center'|'right'): 'left'|'center'|'right' => {
+    if (anim === 'next') {
+      // left -> center, center -> right, right -> left
+      if (role === 'left') return 'center';
+      if (role === 'center') return 'right';
+      return 'left';
+    }
+    if (anim === 'prev') {
+      // left -> right, center -> left, right -> center
+      if (role === 'left') return 'right';
+      if (role === 'center') return 'left';
+      return 'center';
+    }
+    return role;
+  }, [anim]);
+
+  const slotStyle = (visualRole: 'left'|'center'|'right'): React.CSSProperties => {
+    // Transform basé uniquement sur transform (perf) avec un soupçon de 3D
+    const base = 'translateX(-50%)';
+    const sideOffset = 'translateX(68%)'; // ~ 2/3 de la largeur de la carte
+    if (visualRole === 'center') {
+      return {
+        transform: `${base} rotateY(0deg) scale(1)`
+      };
+    }
+    if (visualRole === 'left') {
+      return {
+        transform: `${base} translateX(-68%) rotateY(10deg) scale(0.94)`
+      };
+    }
+    // right
+    return {
+      transform: `${base} ${sideOffset} rotateY(-10deg) scale(0.94)`
+    };
+  };
 
   return (
     <section id="solutions" className="max-w-6xl mx-auto px-6 py-20">
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* ===== Desktop (>= md) : INCHANGÉ — 3 cartes ===== */}
-      <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
-        {/* LEFT */}
-        <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
+      {/* ===== Desktop (>= md) : 3 cartes avec animation roulette ===== */}
+      <div className="hidden md:block">
+        <div
+          className="relative mx-auto max-w-6xl"
+          style={{ perspective: '1200px' }}
+        >
+          {/* Boutons */}
           <button
             onClick={goPrev}
             className="hidden sm:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
             aria-label="Précédent"
+            disabled={isAnimating}
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
-          <Card data={visible[0].data} role={visible[0].role} cfg={TUNE_DESKTOP.side} />
-        </div>
-
-        {/* CENTER */}
-        <div className="w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]">
-          <Card data={visible[1].data} role={visible[1].role} cfg={TUNE_DESKTOP.center} />
-        </div>
-
-        {/* RIGHT */}
-        <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
             onClick={goNext}
             className="hidden sm:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5 hover:ring-[rgba(212,175,55,0.55)] hover:bg-white/10 hover:shadow-[0_0_70px_rgba(212,175,55,0.35)] transition"
             aria-label="Suivant"
+            disabled={isAnimating}
           >
             <ChevronRight className="h-6 w-6" />
           </button>
-          <Card data={visible[2].data} role={visible[2].role} cfg={TUNE_DESKTOP.side} />
+
+          {/* 3 slots superposés, animés en transform */}
+          <div className="relative h-full">
+            {visible.map(({ data, role }) => {
+              const visualRole = mapRole(role);
+              const zIndex = visualRole === 'center' ? 20 : visualRole === 'left' ? 10 : 10;
+              return (
+                <div
+                  key={data.slug}
+                  className="absolute left-1/2 top-0 w-[32%] lg:w-[30%] xl:w-[28%] will-change-transform"
+                  style={{
+                    ...slotStyle(visualRole),
+                    transition: `transform ${ANIM_MS}ms cubic-bezier(0.22,1,0.36,1)`,
+                    zIndex,
+                  }}
+                >
+                  <Card
+                    data={data}
+                    role={visualRole}
+                    cfg={visualRole === 'center' ? TUNE_DESKTOP.center : TUNE_DESKTOP.side}
+                  />
+                </div>
+              );
+            })}
+            {/* réserve de hauteur pour éviter le collapse */}
+            <div className="invisible">
+              <Card data={visible[1].data} role={'center'} cfg={TUNE_DESKTOP.center} />
+            </div>
+          </div>
         </div>
       </div>
 
