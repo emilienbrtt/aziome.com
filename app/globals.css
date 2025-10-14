@@ -1,4 +1,11 @@
 /* /app/globals.css */
-:root { color-scheme: dark; }
-html, body { margin: 0; padding: 0; }
-* { box-sizing: border-box; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thème sombre simple */
+:root{
+  --gold-1:#ffd37a;
+  --gold-2:#f5c66a;
+}
+html,body{ margin:0; padding:0; background:#000; color:#fff; }
