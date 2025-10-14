@@ -1,10 +1,10 @@
 // /app/api/chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { AGENTS } from "../../../agents.config"; // chemin RELATIF (pas d'alias)
+import { AGENTS } from "../../../config"; // ← ton fichier à la racine
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, agent, threadId, history } = await req.json() as {
+    const { message, agent, threadId, history } = (await req.json()) as {
       message: string;
       agent: keyof typeof AGENTS;
       threadId?: string | null;
@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // Thread côté client : si vide, on en crée un pour renvoyer au widget
+    // thread côté client
     const newThreadId = threadId ?? crypto.randomUUID();
 
-    // Construit l'historique (on garde 6 derniers échanges pour le contexte)
+    // contexte court
     const trimmedHistory = Array.isArray(history) ? history.slice(-6) : [];
     const messages = [
       { role: "system", content: AGENTS[agent].system },
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       { role: "user", content: message },
     ];
 
-    // Appel OpenAI simple (tu peux remplacer par ton backend si tu en as un)
+    // Appel OpenAI (remplaçable par ton backend si besoin)
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
