@@ -25,35 +25,30 @@ export default function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // ————— Utils
-  const storeKey = (suffix: string) =>
-    `aziome_${suffix}_${agent ?? "default"}`;
+  // ——— Utils
+  const storeKey = (suffix: string) => `aziome_${suffix}_${agent ?? "default"}`;
 
   function loadThread() {
     if (typeof window === "undefined") return;
-    const savedThread = localStorage.getItem(storeKey("thread_id"));
-    const savedMsgs = localStorage.getItem(storeKey("msgs"));
-    if (savedThread) setThreadId(savedThread);
-    if (savedMsgs) {
-      try {
-        setMsgs(JSON.parse(savedMsgs));
-      } catch {
-        setMsgs([]);
-      }
+    try {
+      const savedThread = localStorage.getItem(storeKey("thread_id"));
+      const savedMsgs = localStorage.getItem(storeKey("msgs"));
+      if (savedThread) setThreadId(savedThread);
+      setMsgs(savedMsgs ? JSON.parse(savedMsgs) : []);
+    } catch {
+      setMsgs([]);
     }
   }
 
   function saveThread(nextMsgs?: Msg[], nextThreadId?: string | null) {
     try {
       if (nextMsgs) localStorage.setItem(storeKey("msgs"), JSON.stringify(nextMsgs));
-      if (nextThreadId !== undefined && nextThreadId !== null)
+      if (typeof nextThreadId !== "undefined" && nextThreadId)
         localStorage.setItem(storeKey("thread_id"), nextThreadId);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
-  // ————— Ouvrir le chat depuis un bouton (événement global)
+  // ——— Ouvrir via évènement global
   useEffect(() => {
     const onOpen = (e: Event) => {
       const detail = (e as CustomEvent).detail as { agent?: AgentKey } | undefined;
@@ -61,7 +56,6 @@ export default function ChatWidget() {
       setAgent(a);
       setOpen(true);
       setHintVisible(false);
-      // charge l’historique de ce persona
       setTimeout(loadThread, 0);
     };
     window.addEventListener("aziome:open-chat", onOpen as any);
@@ -69,7 +63,7 @@ export default function ChatWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ————— Ouvrir via ?chat=max dans l’URL
+  // ——— Ouvrir via ?chat=max
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
@@ -83,18 +77,20 @@ export default function ChatWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Scroll bas
+  // Scroll auto
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, open, loading]);
 
   async function send() {
     if (!input.trim() || loading) return;
+    const a = agent ?? "max"; // défaut
     const question = input.trim();
     setInput("");
-    const next = [...msgs, { role: "user", content: question } as Msg];
-    setMsgs(next);
-    saveThread(next);
+
+    const nextMsgs = [...msgs, { role: "user", content: question } as Msg];
+    setMsgs(nextMsgs);
+    saveThread(nextMsgs);
     setLoading(true);
 
     try {
@@ -104,7 +100,8 @@ export default function ChatWidget() {
         body: JSON.stringify({
           message: question,
           threadId,
-          agent, // ← persona demandée
+          agent: a,                 // ← persona
+          history: nextMsgs.slice(-6), // ← contexte court
         }),
       });
 
@@ -121,10 +118,10 @@ export default function ChatWidget() {
         data.error ??
         "Désolé, je n’arrive pas à répondre pour le moment. Réessaie dans un instant.";
 
-      const next2 = [...next, { role: "assistant", content: reply } as Msg];
+      const next2 = [...nextMsgs, { role: "assistant", content: reply } as Msg];
       setMsgs(next2);
       saveThread(next2);
-    } catch (e) {
+    } catch {
       const next2 = [
         ...msgs,
         { role: "assistant", content: "Désolé, je n’arrive pas à répondre pour le moment." },
