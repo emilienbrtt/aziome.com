@@ -1,92 +1,73 @@
-// app/api/contact/route.ts
-import { NextResponse } from 'next/server';
+// app/api/chat/route.ts
+import { NextResponse } from "next/server";
 
-export const runtime = 'edge';            // exécute sur l’edge
-export const dynamic = 'force-dynamic';   // jamais mis en cache
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY ?? '';
-const CONTACT_TO   = (process.env.CONTACT_TO   ?? 'aziome.agency@gmail.com').trim();
-// ✨ IMPORTANT : fallback sur un expéditeur de TON domaine vérifié
-const CONTACT_FROM = (process.env.CONTACT_FROM ?? 'Aziome <no-reply@aziome.com>').trim();
+type AgentKey = "max" | "lea" | "jules" | "mia" | "chris";
 
-function isEmail(x: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
-}
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? ""; // optionnel
 
-function escapeHtml(str: string) {
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
+const PERSONAS: Record<AgentKey, string> = {
+  max: `Tu es Max, agent CRM & relances. Tu aides à récupérer des ventes perdues, paniers abandonnés, relances multi-canal.`,
+  lea: `Tu es Léa, agent Service Client. Tu réponds vite, suis les commandes, escalades si besoin.`,
+  jules: `Tu es Jules, agent Reporting. Tu synthétises les chiffres, alertes anomalies, expliques simplement.`,
+  mia: `Tu es Mia, premier contact. Tu qualifies la demande et orientes.`,
+  chris:`Tu es Chris, support interne/RH. Tu aides sur documents, absences, demandes internes.`,
+};
 
 export async function POST(req: Request) {
   try {
-    const { name = '', email = '', company = '', agent = '', message = '' } =
-      (await req.json().catch(() => ({}))) as Record<string, string>;
+    const { message = "", agent = null } = (await req.json()) as {
+      message?: string;
+      agent?: AgentKey | null;
+      threadId?: string | null;
+    };
 
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: 'Champs requis manquants.' }, { status: 400 });
-    }
-    if (!isEmail(email)) {
-      return NextResponse.json({ error: "Format d'email invalide." }, { status: 400 });
-    }
-    if (!RESEND_API_KEY) {
-      return NextResponse.json({ error: 'RESEND_API_KEY manquante.' }, { status: 500 });
-    }
+    const key = (agent ?? "max") as AgentKey;
+    const system = PERSONAS[key];
 
-    // Liste des destinataires (séparée par virgules possible)
-    const toList = CONTACT_TO.split(',').map(s => s.trim()).filter(Boolean);
-    if (toList.length === 0 || !toList.every(isEmail)) {
-      return NextResponse.json({ error: 'CONTACT_TO invalide.' }, { status: 500 });
-    }
-
-    // Sécurité : on s’assure que le FROM est bien sur le domaine vérifié
-    if (!/@aziome\.com>/i.test(CONTACT_FROM) && !/@aziome\.com$/i.test(CONTACT_FROM)) {
-      return NextResponse.json(
-        { error: "CONTACT_FROM doit être une adresse @aziome.com." },
-        { status: 500 }
-      );
+    if (!OPENAI_API_KEY) {
+      // —— MODE DÉMO (pas d’IA) —— 
+      const demo = [
+        `👉 Mode démo sans IA active.`,
+        `Tu parles avec **${system.split(",")[0]}**.`,
+        `Ta question: "${message}"`,
+        `Exemple de réponse:`,
+        `Je peux t’expliquer comment je travaille, mes intégrations et les résultats typiques. Dis-moi ton contexte (shop, volume, outils) et ton objectif, je te propose un plan simple en 3 étapes.`,
+      ].join("\n");
+      return NextResponse.json({ reply: demo, threadId: null });
     }
 
-    const subject = `[Contact] ${agent ? `Agent ${agent} — ` : ''}${name} <${email}>`;
-    const html = `
-      <div style="font-family:ui-sans-serif,sans-serif;line-height:1.5">
-        <h2 style="margin:0 0 8px">Nouveau message depuis le site</h2>
-        <p><b>Nom</b> : ${escapeHtml(name)}</p>
-        <p><b>Email</b> : ${escapeHtml(email)}</p>
-        ${company ? `<p><b>Entreprise</b> : ${escapeHtml(company)}</p>` : ''}
-        ${agent ? `<p><b>Agent</b> : ${escapeHtml(agent)}</p>` : ''}
-        <p style="white-space:pre-wrap"><b>Message</b><br>${escapeHtml(message)}</p>
-      </div>
-    `;
-
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    // —— VRAI APPEL OPENAI (si clé fournie) ——
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: CONTACT_FROM,     // ✅ expéditeur @aziome.com
-        to: toList,             // tableau d’adresses
-        subject,
-        html,
-        reply_to: email,        // répond directement à l’expéditeur saisi dans le form
+        model: "gpt-4o-mini",
+        temperature: 0.5,
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: system + " Réponds en français, clair et concis." },
+          { role: "user", content: message || "Présente-toi en 2 phrases." },
+        ],
       }),
     });
 
-    if (!res.ok) {
-      let info: unknown;
-      try { info = await res.json(); } catch { info = await res.text(); }
-      return NextResponse.json({ error: info }, { status: res.status });
+    if (!r.ok) {
+      const txt = await r.text();
+      return NextResponse.json({ error: txt }, { status: r.status });
     }
+    const data = await r.json();
+    const reply: string =
+      data?.choices?.[0]?.message?.content ??
+      "Désolé, pas de réponse disponible pour le moment.";
 
-    const data = await res.json();
-    return NextResponse.json({ ok: true, id: (data as any)?.id ?? null });
+    return NextResponse.json({ reply, threadId: null });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Erreur serveur.' }, { status: 500 });
+    return NextResponse.json({ error: e?.message ?? "Erreur serveur." }, { status: 500 });
   }
 }
