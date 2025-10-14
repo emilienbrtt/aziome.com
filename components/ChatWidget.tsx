@@ -25,40 +25,6 @@ export default function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // ==== NOUVEAU : masquer le widget sur /chat/*
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const check = () => {
-      const isChatPage = window.location.pathname.startsWith("/chat");
-      setHidden(isChatPage);
-      if (isChatPage && open) setOpen(false); // ferme si on arrive sur /chat/*
-    };
-
-    // check initial
-    check();
-
-    // suivre les changements d'URL SPA (pushState / back/forward)
-    const origPush = history.pushState;
-    (history.pushState as any) = function (...args: any[]) {
-      const ret = origPush.apply(this, args as any);
-      window.dispatchEvent(new Event("locationchange"));
-      return ret;
-    };
-
-    window.addEventListener("popstate", check);
-    window.addEventListener("locationchange", check);
-
-    return () => {
-      window.removeEventListener("popstate", check);
-      window.removeEventListener("locationchange", check);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-  if (hidden) return null;
-  // ==== FIN PATCH
-
   // ——— Utils
   const storeKey = (suffix: string) => `aziome_${suffix}_${agent ?? "default"}`;
 
@@ -113,12 +79,12 @@ export default function ChatWidget() {
 
   // Scroll auto
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current!.scrollHeight, behavior: "smooth" });
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, open, loading]);
 
   async function send() {
     if (!input.trim() || loading) return;
-    const a = agent ?? "max"; // défaut (widget générique → Max)
+    const a = agent ?? "max"; // défaut
     const question = input.trim();
     setInput("");
 
@@ -134,7 +100,7 @@ export default function ChatWidget() {
         body: JSON.stringify({
           message: question,
           threadId,
-          agent: a,                  // ← persona
+          agent: a,                 // ← persona
           history: nextMsgs.slice(-6), // ← contexte court
         }),
       });
