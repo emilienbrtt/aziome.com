@@ -1,15 +1,18 @@
 "use client";
-import Link from "next/link";
+import type { MouseEvent } from "react";
+import type { AgentKey } from "../../agents.config"; // chemin relatif
 
-export default function ChatCTA({ agentName }: { agentName: "Max" | "Léa" | "Jules" | "Mia" | "Chris" }) {
-  const slug = ({ "Léa": "lea" } as Record<string, string>)[agentName] ?? agentName.toLowerCase();
+export default function ChatCTA({ slug }: { slug: AgentKey }) {
+  function open(e: MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent("aziome:open-chat", { detail: { agent: slug } }));
+  }
   return (
-    <Link
-      href={`/agents/${slug}/chat`}
-      className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
-                 bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white shadow hover:shadow-lg transition"
+    <button
+      onClick={open}
+      className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/10 hover:bg-white/15"
     >
-      Parler à cet agent →
-    </Link>
+      Parler à {slug.toUpperCase()}
+    </button>
   );
 }
