@@ -3,16 +3,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, X } from 'lucide-react';
 
+type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 type Role = 'user' | 'assistant';
 type Msg = { role: Role; content: string };
 
-export default function AgentChat() {
+const NAMES: Record<AgentKey, string> = {
+  max: 'Max',
+  lea: 'Léa',
+  jules: 'Jules',
+  mia: 'Mia',
+  chris: 'Chris',
+};
+
+export default function AgentChat({ agent }: { agent: AgentKey }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll
+  // Auto-scroll à chaque nouveau message
   useEffect(() => {
     listRef.current?.scrollTo({
       top: listRef.current.scrollHeight,
@@ -25,24 +34,29 @@ export default function AgentChat() {
     if (!question || loading) return;
 
     setInput('');
-    // ✅ littéral conservé
     setMsgs((m) => [...m, { role: 'user' as const, content: question }]);
     setLoading(true);
 
     try {
-      // TODO: remplace cette partie par ton appel réel (ex: /api/chat?agent=...)
-      // Simu d’une réponse:
-      const reply = "Je suis l'agent — comment puis-je aider ?";
+      // Appel de ton API — on transmet l’agent
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, agent }),
+      });
 
-      // ✅ littéral conservé
+      let reply = "Je suis l'agent, comment puis-je aider ?";
+      if (r.ok) {
+        const data = (await r.json()) as { reply?: string; error?: string };
+        reply = data.reply ?? data.error ?? reply;
+      }
+
       setMsgs((m) => [...m, { role: 'assistant' as const, content: reply }]);
-    } catch (e) {
-      // ✅ annote le tableau comme Msg[]
-      const next2: Msg[] = [
-        ...msgs,
-        { role: 'assistant', content: "Désolé, je n’arrive pas à répondre pour le moment." },
-      ];
-      setMsgs(next2);
+    } catch {
+      setMsgs((m) => [
+        ...m,
+        { role: 'assistant' as const, content: "Désolé, je n'arrive pas à répondre pour le moment." },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -62,7 +76,7 @@ export default function AgentChat() {
     >
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-medium text-[color:var(--gold-2,#f5c66a)]">
-          Chat avec l’agent
+          Parler à l’agent {NAMES[agent]}
         </h4>
         <button
           aria-label="Vider la conversation"
