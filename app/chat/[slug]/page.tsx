@@ -61,7 +61,6 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
           agent: slug,
           threadId,
           history: next.slice(-8),
-          // context: "Tu peux envoyer ici des infos de page si besoin."
         }),
       });
       const data = await res.json();
@@ -76,37 +75,71 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
   }
 
   return (
-    <section className="min-h-[100svh] max-w-3xl mx-auto px-4 py-6">
+    <section
+      className="
+        min-h-[100svh]
+        w-[94vw] max-w-[520px] mx-auto
+        px-3 sm:px-4 py-6
+      "
+    >
       <header className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">{header}</h1>
-        <button onClick={()=>router.back()} className="text-sm text-[color:var(--gold-1)] hover:opacity-80">← Retour</button>
+        <button
+          onClick={() => router.back()}
+          className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
+        >
+          ← Retour
+        </button>
       </header>
 
-      <div ref={listRef} className="h-[70svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40">
+      <div
+        ref={listRef}
+        className="
+          h-[56svh] sm:h-[60svh]
+          overflow-y-auto
+          rounded-2xl border border-white/10
+          p-3 sm:p-4 space-y-3
+          bg-black/40
+        "
+      >
         {msgs.length === 0 && (
           <p className="text-sm text-neutral-400">
             Démarre une discussion dédiée à <b>{header}</b>. Pose ta question.
           </p>
         )}
-        {msgs.map((m,i)=>(
-          <div key={i} className={m.role==='user'?'text-right':''}>
-            <div className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${m.role==='user'?'bg-white/10':'bg-white/5'}`}>
+        {msgs.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : ""}>
+            <div
+              className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${
+                m.role === "user" ? "bg-white/10" : "bg-white/5"
+              }`}
+            >
               {m.content}
             </div>
           </div>
         ))}
-        {loading && <div className="inline-block px-3 py-2 rounded-xl bg-white/5">…</div>}
+        {loading && (
+          <div className="inline-block px-3 py-2 rounded-xl bg-white/5">…</div>
+        )}
       </div>
 
       <div className="mt-3 flex gap-2">
         <input
           value={input}
-          onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>{ if(e.key==='Enter') send(); }}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
           placeholder={`Écris à ${header.split(" — ")[0]}…`}
           className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
         />
-        <button onClick={send} disabled={loading} className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50">Envoyer</button>
+        <button
+          onClick={send}
+          disabled={loading}
+          className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+        >
+          Envoyer
+        </button>
       </div>
     </section>
   );
