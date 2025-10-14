@@ -1,5 +1,6 @@
-import "../globals.css";
-import ChatWidget from "../components/ChatWidget"; // chemin RELATIF
+// /app/layout.tsx
+import "./globals.css";                       // ← IMPORTANT (./, pas ../)
+import ChatWidget from "../components/ChatWidget"; // ton widget global
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
