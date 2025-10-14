@@ -1,24 +1,29 @@
 // /app/api/chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { AGENTS } from "../../../config"; // ← remonte bien à la racine
+import { AGENTS } from "../../../config";
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, agent, threadId, history } = (await req.json()) as {
+    const { message, agent, threadId, history, context } = (await req.json()) as {
       message: string;
       agent: keyof typeof AGENTS;
       threadId?: string | null;
       history?: { role: "user" | "assistant"; content: string }[];
+      context?: string; // optionnel (facts côté page)
     };
 
     if (!message || !agent || !AGENTS[agent]) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
+    const cfg = AGENTS[agent];
     const newThreadId = threadId ?? crypto.randomUUID();
-    const trimmed = Array.isArray(history) ? history.slice(-6) : [];
+    const trimmed = Array.isArray(history) ? history.slice(-8) : [];
+
+    const sys = `${cfg.system}\n\nFaits spécifiques à ${cfg.name}:\n${cfg.profile}`;
     const messages = [
-      { role: "system", content: AGENTS[agent].system },
+      { role: "system", content: sys },
+      ...(context ? [{ role: "system", content: `Contexte de page:\n${context}` }] : []),
       ...trimmed,
       { role: "user", content: message },
     ];
@@ -29,11 +34,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY!}`,
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        messages,
-      }),
+      body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.3, messages }),
     });
 
     if (!r.ok) {
