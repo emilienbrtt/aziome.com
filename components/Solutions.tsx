@@ -5,9 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ========= Réglages =========
-   ⚠️ Desktop inchangé (mêmes tailles/positions).
-   Mobile seulement : on descend le perso & on protège contre la coupe.
+/* ========= Réglages visuels =========
+   Desktop inchangé. Mobile : personnage plus bas + zone image protégée.
 */
 const TUNE_DESKTOP = {
   center: { scale: 1.62, offsetY: 6,  pb: 84 },
@@ -108,7 +107,6 @@ export default function Solutions() {
                 transform: `translateY(${cfg.offsetY}px) scale(${cfg.scale})`,
                 objectPosition: 'center bottom'
               }}
-              draggable={false}
             />
           </div>
           {/* Gradient = même hauteur que la réserve bas */}
@@ -146,7 +144,7 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* ===== Desktop (>= md) : INCHANGÉ — 3 cartes ===== */}
+      {/* ===== Desktop (>= md) : 3 cartes ===== */}
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
         {/* LEFT */}
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
@@ -178,13 +176,8 @@ export default function Solutions() {
         </div>
       </div>
 
-      {/* ===== Mobile (< md) : 1 carte + flèches + vignettes ===== */}
-      <div
-        className="md:hidden relative px-2"
-        /* Pas de swipe : on ne met pas d’onTouchStart/onTouchEnd, et on indique au navigateur
-           de privilégier le scroll vertical uniquement. */
-        style={{ touchAction: 'pan-y' }}
-      >
+      {/* ===== Mobile (< md) : 1 carte + flèches + vignettes (PAS de swipe) ===== */}
+      <div className="md:hidden relative px-2">
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} mobile />
 
         {/* Flèches */}
@@ -209,7 +202,7 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : on garde le choix par tap (si tu veux forcer 100% flèches, je peux les retirer aussi) */}
+        {/* Vignettes : glow doré actif + hover */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
@@ -219,22 +212,42 @@ export default function Solutions() {
                   <button
                     onClick={() => setCurrent(i)}
                     className={[
-                      'h-12 w-12 rounded-2xl flex items-center justify-center',
-                      'border outline-none focus:outline-none focus-visible:outline-none select-none',
+                      'group relative h-12 w-12 rounded-2xl flex items-center justify-center',
+                      'border outline-none focus:outline-none focus-visible:outline-none select-none transition',
                       active
-                        ? 'border-[rgba(212,175,55,0.70)] shadow-[0_0_22px_rgba(212,175,55,0.28)] bg-black/30'
+                        ? 'border-[rgba(212,175,55,0.70)] bg-black/30'
                         : 'border-white/24 hover:border-white/36 bg-black/10'
                     ].join(' ')}
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" />
+                    {/* Glow doré derrière la vignette */}
+                    <span
+                      aria-hidden
+                      className={[
+                        'pointer-events-none absolute -inset-2 rounded-3xl transition-opacity duration-200',
+                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      ].join(' ')}
+                      style={{
+                        background:
+                          'radial-gradient(120% 120% at 50% 50%, rgba(212,175,55,0.45), rgba(212,175,55,0.18), rgba(0,0,0,0) 70%)',
+                        filter: 'blur(8px)'
+                      }}
+                    />
+                    <Image
+                      src={c.image}
+                      alt={c.name}
+                      width={34}
+                      height={34}
+                      className="object-contain"
+                      draggable={false}
+                    />
                   </button>
                 </li>
               );
             })}
           </ul>
-          {/* ⛔️ Texte d’aide supprimé */}
+          {/* (Texte d’aide retiré) */}
         </div>
       </div>
 
