@@ -1,210 +1,136 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+"use client";
 
-type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-const AGENTS: Record<
-  AgentKey,
-  {
-    name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
-    subtitle: string;
-    avatar: string;
-    intro: string;
-    why: string[];
-    stacks: string[];
-    youSee: string[];
+type AgentKey = "max" | "lea" | "jules" | "mia" | "chris";
+type Msg = { role: "user" | "assistant"; content: string };
+
+export default function ChatPage({ params }: { params: { slug: string } }) {
+  const router = useRouter();
+  const slug = (params.slug?.toLowerCase() ?? "") as AgentKey;
+
+  const [input, setInput] = useState("");
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [typing, setTyping] = useState(false);
+  const [gotFirstChunk, setGotFirstChunk] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // Scroll auto
+  useEffect(() => {
+    scroller.current?.scrollTo({
+      top: scroller.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [msgs, typing]);
+
+  async function send() {
+    const question = input.trim();
+    if (!question || typing) return;
+
+    setInput("");
+    const history = [...msgs, { role: "user", content: question } as Msg];
+    setMsgs(history);
+    setTyping(true);
+    setGotFirstChunk(false);
+
+    // Placeholder assistant
+    setMsgs((prev) => [...prev, { role: "assistant", content: "" }]);
+
+    const res = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: question,
+        agent: slug,
+        history: history.slice(-8),
+      }),
+    });
+
+    const reader = res.body?.getReader();
+    if (!reader) {
+      setTyping(false);
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let acc = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      if (chunk && !gotFirstChunk) setGotFirstChunk(true);
+      acc += chunk;
+
+      setMsgs((prev) => {
+        const copy = [...prev];
+        copy[copy.length - 1] = { role: "assistant", content: acc };
+        return copy;
+      });
+    }
+
+    setTyping(false);
   }
-> = {
-  max: {
-    name: 'Max',
-    subtitle: 'CRM & Relances',
-    avatar: '/agents/max.png',
-    intro:
-      "Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.",
-    why: [
-      'Vous récupérez des ventes perdues.',
-      'Plus de clients reviennent acheter.',
-      'Messages clairs, au bon moment.',
-    ],
-    stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
-    youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
-  },
-  lea: {
-    name: 'Léa',
-    subtitle: 'Service après-vente (SAV)',
-    avatar: '/agents/lea.png',
-    intro:
-      'Répond vite et clairement, suit les commandes et transfère à un humain si besoin.',
-    why: [
-      'Moins d’attente pour vos clients',
-      'Moins de charge pour l’équipe',
-      'Vous gardez la main à tout moment',
-    ],
-    stacks: ['Email, chat, WhatsApp', 'Gorgias, Zendesk, Freshdesk', 'Shopify, WooCommerce'],
-    youSee: ['Temps de réponse moyen', 'Demandes résolues par l’agent', 'Satisfaction client'],
-  },
-  jules: {
-    name: 'Jules',
-    subtitle: 'Reporting & Résultats',
-    avatar: '/agents/jules.png',
-    intro:
-      'Met vos chiffres sur une page simple, alerte en cas d’anomalie, répond aux questions (“Combien hier ?”).',
-    why: [
-      'Vous savez où vous en êtes chaque jour',
-      'Vous repérez les soucis tout de suite',
-      'Moins de fichiers, plus de clarté',
-    ],
-    stacks: ['Shopify / WooCommerce', 'Gorgias / Zendesk', 'Google Sheets, Looker, Notion'],
-    youSee: ['Tableau à jour', 'Alertes email / Slack', 'Résumé hebdomadaire'],
-  },
-  mia: {
-    name: 'Mia',
-    subtitle: 'Premier contact & Orientation',
-    avatar: '/agents/mia.png',
-    intro:
-      'Accueille chaque demande, pose les bonnes questions et oriente vers la bonne personne.',
-    why: [
-      'Réponses immédiates, 24h/24',
-      'Moins d’appels ou emails perdus',
-      'Parcours client plus fluide',
-    ],
-    stacks: ['Chat du site, formulaire, email', 'WhatsApp, Facebook/Instagram', 'Transcriptions d’appels, Slack'],
-    youSee: ['Demandes prises en charge', 'Catégories & motifs récurrents', 'Taux de transfert vers humain'],
-  },
-  chris: {
-    name: 'Chris',
-    subtitle: 'Démarches RH & Support interne',
-    avatar: '/agents/chris.png',
-    intro:
-      'Prend en charge les demandes internes (attestations, absences), prépare les documents et répond aux questions.',
-    why: [
-      'Moins d’administratif pour les RH',
-      'Réponses rapides pour les équipes',
-      'Moins d’erreurs et de retards',
-    ],
-    stacks: ['Google Workspace/Drive, Notion', 'Slack ou Microsoft Teams', 'Outils SIRH (placeholders)'],
-    youSee: ['Demandes traitées', 'Documents générés', 'Délai moyen de réponse'],
-  },
-};
-
-export async function generateMetadata({ params }: { params: { slug: AgentKey } }): Promise<Metadata> {
-  const a = AGENTS[params.slug];
-  return { title: `${a?.name ?? 'Agent'} — Aziome` };
-}
-
-export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
-  const current = AGENTS[params.slug];
-  if (!current) return notFound();
-
-  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
 
   return (
-    <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
-      {/* halo discret */}
+    <section className="min-h-[100svh] max-w-3xl mx-auto px-4 py-6">
+      <header className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold capitalize">{slug}</h1>
+        <button
+          onClick={() => router.back()}
+          className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
+        >
+          ← Retour
+        </button>
+      </header>
+
       <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.16), transparent 60%)' }}
-      />
+        ref={scroller}
+        className="h-[65svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
+      >
+        {msgs.length === 0 && (
+          <p className="text-sm text-neutral-400">
+            Pose une question à <b className="capitalize">{slug}</b>. Réponse courte, naturelle.
+          </p>
+        )}
 
-      {/* back -> vers la section de la home */}
-      <div className="mb-6 md:mb-8">
-        <Link href="/#solutions" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
-          ← Revenir aux agents
-        </Link>
-      </div>
-
-      {/* HERO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-        {/* Visuel */}
-        <div className="relative h-[460px] sm:h-[500px] md:h-[560px] lg:h-[600px]">
-          <Image
-            src={current.avatar}
-            alt={current.name}
-            fill
-            priority
-            className="
-              object-contain pointer-events-none select-none
-              -translate-y-[120px] sm:-translate-y-[140px] md:translate-y-0
-              scale-[1.24] md:scale-[1.18]"
-            style={{ objectPosition: 'center center' }}
-          />
-        </div>
-
-        {/* Infos + CTA */}
-        <div>
-          <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
-          <p className="text-muted mt-1">{current.subtitle}</p>
-          <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
-
-          {/* BOUTON -> page de chat dédiée */}
-          <div className="mt-6">
-            <Link
-              href={`/chat/${params.slug}`}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-black
-                         bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
-                         ring-1 ring-white/10
-                         shadow-[0_0_34px_rgba(212,175,55,0.28)]
-                         hover:shadow-[0_0_60px_rgba(212,175,55,0.36)]
-                         transition"
+        {msgs.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : ""}>
+            <div
+              className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${
+                m.role === "user" ? "bg-white/10" : "bg-white/5"
+              }`}
             >
-              Parler à {current.name} <span aria-hidden>→</span>
-            </Link>
+              {m.content}
+            </div>
           </div>
-        </div>
+        ))}
+
+        {/* Indicateur de frappe */}
+        {typing && !gotFirstChunk && (
+          <div className="text-xs text-neutral-400">… est en train d’écrire</div>
+        )}
       </div>
 
-      {/* Détails */}
-      <div className="mt-12 md:mt-14 grid md:grid-cols-3 gap-6 text-sm">
-        <Card title="Pourquoi c’est utile" items={current.why} />
-        <Card title="Ça marche avec" items={current.stacks} />
-        <Card title="Ce que vous voyez" items={current.youSee} />
-      </div>
-
-      {/* Autres agents */}
-      <div className="mt-12">
-        <h3 className="text-base font-medium mb-4">Explorer les autres agents</h3>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {others.map((k) => {
-            const a = AGENTS[k];
-            return (
-              <Link
-                key={k}
-                href={`/agents/${k}`}
-                className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
-              >
-                <Image
-                  src={a.avatar}
-                  alt={a.name}
-                  width={40}
-                  height={40}
-                  className="rounded-full ring-1 ring-white/10 object-cover"
-                />
-                <div>
-                  <div className="font-medium">{a.name}</div>
-                  <div className="text-xs text-muted">{a.subtitle}</div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+      <div className="mt-3 flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
+          placeholder={`Écris à ${slug}…`}
+          className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
+        />
+        <button
+          onClick={send}
+          disabled={typing || !input.trim()}
+          className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+        >
+          Envoyer
+        </button>
       </div>
     </section>
-  );
-}
-
-/* — Sous-composant — */
-function Card({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="glass rounded-2xl p-6">
-      <h2 className="font-medium mb-3">{title}</h2>
-      <ul className="list-disc pl-5 space-y-1 text-muted">
-        {items.map((x, i) => (
-          <li key={i}>{x}</li>
-        ))}
-      </ul>
-    </div>
   );
 }
