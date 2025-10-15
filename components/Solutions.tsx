@@ -5,9 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ========= Réglages visuels =========
-   Desktop inchangé. Mobile : personnage plus bas + zone image protégée.
-*/
+/* ========= Réglages visuels ========= */
 const TUNE_DESKTOP = {
   center: { scale: 1.62, offsetY: 6,  pb: 84 },
   side:   { scale: 1.52, offsetY: 4,  pb: 84 },
@@ -45,7 +43,6 @@ export default function Solutions() {
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
 
-  /* ===== Styles par rôle (DESKTOP — inchangé) ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
       'group relative rounded-2xl ring-1 transition outline-none focus:outline-none ' +
@@ -63,7 +60,6 @@ export default function Solutions() {
       ' hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] scale-[0.95] opacity-90 ' + shift;
   };
 
-  /* ===== Carte générique ===== */
   function Card({
     data,
     role,
@@ -79,7 +75,7 @@ export default function Solutions() {
 
     return (
       <div className={roleClass(role)} tabIndex={-1}>
-        {/* Halo doré radial */}
+        {/* Halo doré radial (au survol) */}
         <div
           aria-hidden
           className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
@@ -89,12 +85,11 @@ export default function Solutions() {
           }}
         />
 
-        {/* Bloc image — classes stables */}
+        {/* Bloc image */}
         <div
           className={mobile ? 'relative bg-black' : 'relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]'}
           style={mobile ? { height: TUNE_MOBILE.imgHeight } : undefined}
         >
-          {/* pt donne de l'air en haut, pb protège le texte en bas */}
           <div className="absolute inset-0" style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}>
             <Image
               src={data.image}
@@ -109,7 +104,6 @@ export default function Solutions() {
               }}
             />
           </div>
-          {/* Gradient = même hauteur que la réserve bas */}
           <div
             className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black/70"
             aria-hidden
@@ -126,13 +120,11 @@ export default function Solutions() {
           </Link>
         </div>
 
-        {/* Assombrissement des cartes latérales */}
         {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
       </div>
     );
   }
 
-  /* ===== Visible ===== */
   const visible = [
     { data: CARDS[idxLeft],   role: 'left' as const },
     { data: CARDS[idxCenter], role: 'center' as const },
@@ -144,9 +136,8 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* ===== Desktop (>= md) : 3 cartes ===== */}
+      {/* ===== Desktop (>= md) ===== */}
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
-        {/* LEFT */}
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
             onClick={goPrev}
@@ -158,12 +149,10 @@ export default function Solutions() {
           <Card data={visible[0].data} role={visible[0].role} cfg={TUNE_DESKTOP.side} />
         </div>
 
-        {/* CENTER */}
         <div className="w-[48%] md:w-[38%] lg:w-[34%] xl:w-[32%]">
           <Card data={visible[1].data} role={visible[1].role} cfg={TUNE_DESKTOP.center} />
         </div>
 
-        {/* RIGHT */}
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
             onClick={goNext}
@@ -176,7 +165,7 @@ export default function Solutions() {
         </div>
       </div>
 
-      {/* ===== Mobile (< md) : 1 carte + flèches + vignettes (PAS de swipe) ===== */}
+      {/* ===== Mobile (< md) : PAS de swipe, flèches + vignettes ===== */}
       <div className="md:hidden relative px-2">
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} mobile />
 
@@ -202,17 +191,30 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : glow doré actif + hover */}
+        {/* Vignettes : glow doré DERRIÈRE (pas sur l’image) */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
-                <li key={c.slug} className="shrink-0">
+                <li key={c.slug} className="group relative shrink-0">
+                  {/* Glow placé DERRIÈRE le bouton */}
+                  <span
+                    aria-hidden
+                    className={[
+                      'absolute -inset-3 rounded-3xl z-0 transition-opacity duration-200',
+                      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    ].join(' ')}
+                    style={{
+                      background:
+                        'radial-gradient(120% 120% at 50% 50%, rgba(212,175,55,0.45), rgba(212,175,55,0.18), rgba(0,0,0,0) 70%)',
+                      filter: 'blur(10px)'
+                    }}
+                  />
                   <button
                     onClick={() => setCurrent(i)}
                     className={[
-                      'group relative h-12 w-12 rounded-2xl flex items-center justify-center',
+                      'relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center',
                       'border outline-none focus:outline-none focus-visible:outline-none select-none transition',
                       active
                         ? 'border-[rgba(212,175,55,0.70)] bg-black/30'
@@ -221,19 +223,6 @@ export default function Solutions() {
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    {/* Glow doré derrière la vignette */}
-                    <span
-                      aria-hidden
-                      className={[
-                        'pointer-events-none absolute -inset-2 rounded-3xl transition-opacity duration-200',
-                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      ].join(' ')}
-                      style={{
-                        background:
-                          'radial-gradient(120% 120% at 50% 50%, rgba(212,175,55,0.45), rgba(212,175,55,0.18), rgba(0,0,0,0) 70%)',
-                        filter: 'blur(8px)'
-                      }}
-                    />
                     <Image
                       src={c.image}
                       alt={c.name}
@@ -247,11 +236,9 @@ export default function Solutions() {
               );
             })}
           </ul>
-          {/* (Texte d’aide retiré) */}
         </div>
       </div>
 
-      {/* utilitaires */}
       <style jsx>{`
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
