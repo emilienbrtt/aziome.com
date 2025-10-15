@@ -9,42 +9,21 @@ import { AGENTS } from "../../../config";
 type Msg = { role: "user" | "assistant"; content: string };
 const VALID: AgentKey[] = ["max", "lea", "jules", "mia", "chris"];
 
-// anciennes clés qu'on nettoie au cas où
-const storageKeysToNuke = (slug: string) => [
-  `aziome.chat.${slug}`,
-  `aziome_full_thread_${slug}`,
-  `aziome_full_msgs_${slug}`,
-  "aziome_thread_id",
-];
-
+// on garde le chat éphémère (pas de persistance)
 export default function ChatPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
   const slug = (params.slug?.toLowerCase() ?? "") as AgentKey;
 
-  // si slug invalide -> home
   useEffect(() => {
     if (!VALID.includes(slug)) router.replace("/");
   }, [slug, router]);
 
-  // on nettoie toute persistance à l'entrée et en sortie
-  useEffect(() => {
-    try {
-      for (const k of storageKeysToNuke(slug)) localStorage.removeItem(k);
-    } catch {}
-    const clearOnExit = () => {
-      try {
-        for (const k of storageKeysToNuke(slug)) localStorage.removeItem(k);
-      } catch {}
-    };
-    window.addEventListener("beforeunload", clearOnExit);
-    return () => window.removeEventListener("beforeunload", clearOnExit);
-  }, [slug]);
-
-  const header = AGENTS[slug]?.name ?? "Agent";
+  // Nom court : on enlève tout éventuel “ — …”
+  const agentName = (AGENTS[slug]?.name ?? "Agent").split(" — ")[0];
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [threadId, setThreadId] = useState<string | null>(null); // toujours neuf
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +47,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
         body: JSON.stringify({
           message: q,
           agent: slug,
-          threadId,         // null au premier message → nouveau thread côté API
+          threadId,          // null au premier message → nouveau thread côté API
           history: next.slice(-8),
         }),
       });
@@ -85,7 +64,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
   return (
     <section className="min-h-[100svh] max-w-2xl mx-auto px-4 py-6">
       <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{header}</h1>
+        <h1 className="text-lg font-semibold">{agentName}</h1>
         <button
           onClick={() => router.back()}
           className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
@@ -94,48 +73,48 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
         </button>
       </header>
 
-      <div
-        ref={listRef}
-        className="h-[62svh] md:h-[64svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
-      >
-        {msgs.length === 0 && (
-          <p className="text-sm text-neutral-400">
-            Pose une question à <b>{header}</b>. <i>(La conversation se réinitialise à chaque visite.)</i>
-          </p>
-        )}
+      {/* cadre plus étroit */}
+      <div className="mx-auto max-w-xl">
+        <p className="mb-2 text-sm text-neutral-400">
+          Pose une question à <b>{agentName}</b>.
+        </p>
 
-        {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <div
-              className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${
-                m.role === "user" ? "bg-white/10" : "bg-white/5"
-              }`}
-            >
-              {m.content}
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div className="inline-block px-3 py-2 rounded-xl bg-white/5">…</div>
-        )}
-      </div>
-
-      <div className="mt-3 flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Écris à ${header}…`}
-          className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
-        />
-        <button
-          onClick={send}
-          disabled={loading}
-          className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+        <div
+          ref={listRef}
+          className="h-[58svh] md:h-[60svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
         >
-          Envoyer
-        </button>
+          {msgs.map((m, i) => (
+            <div key={i} className={m.role === "user" ? "text-right" : ""}>
+              <div
+                className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${
+                  m.role === "user" ? "bg-white/10" : "bg-white/5"
+                }`}
+              >
+                {m.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="inline-block px-3 py-2 rounded-xl bg-white/5">…</div>
+          )}
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder={`Écris à ${agentName}…`}
+            className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
+          />
+          <button
+            onClick={send}
+            disabled={loading}
+            className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+          >
+            Envoyer
+          </button>
+        </div>
       </div>
     </section>
   );
