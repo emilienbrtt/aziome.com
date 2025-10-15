@@ -32,7 +32,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
     setGotFirstChunk(false);
 
     // placeholder assistant (rempli par le stream)
-    setMsgs((prev) => [...prev, { role: "assistant", content: "" }]);
+    setMsgs(prev => [...prev, { role: "assistant", content: "" }]);
 
     const res = await fetch("/api/chat/stream", {
       method: "POST",
@@ -53,7 +53,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
       if (chunk && !gotFirstChunk) setGotFirstChunk(true);
       acc += chunk;
 
-      setMsgs((prev) => {
+      setMsgs(prev => {
         const copy = [...prev];
         copy[copy.length - 1] = { role: "assistant", content: acc };
         return copy;
@@ -64,60 +64,67 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
   }
 
   return (
-    {/* ⬇️ BEAUCOUP PLUS ÉTROIT */}
-    <section className="min-h-[100svh] w-full mx-auto px-4 py-6
-                        max-w-[480px] sm:max-w-[500px] md:max-w-[520px] lg:max-w-[540px]">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold capitalize">{slug}</h1>
-        <button onClick={() => router.back()} className="text-sm text-[color:var(--gold-1)] hover:opacity-80">
-          ← Retour
-        </button>
-      </header>
-
-      <div
-        ref={scroller}
-        className="h-[60svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
+    <>
+      {/* chat beaucoup plus étroit */}
+      <section
+        className="min-h-[100svh] w-full mx-auto px-4 py-6
+                   max-w-[420px] sm:max-w-[460px] md:max-w-[500px]"
       >
-        {msgs.length === 0 && (
-          <p className="text-sm text-neutral-400">
-            Pose une question à <b className="capitalize">{slug}</b>. Réponse courte, naturelle.
-          </p>
-        )}
+        <header className="mb-4 flex items-center justify-between">
+          <h1 className="text-lg font-semibold capitalize">{slug}</h1>
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
+          >
+            ← Retour
+          </button>
+        </header>
 
-        {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            {/* ⬇️ bulles ajustées pour ce format étroit */}
-            <div
-              className={`inline-block max-w-[86%] px-3 py-2 rounded-xl leading-relaxed ${
-                m.role === "user" ? "bg-white/10" : "bg-white/5"
-              }`}
-            >
-              {m.content}
-            </div>
-          </div>
-        ))}
-
-        {typing && !gotFirstChunk && (
-          <div className="text-xs text-neutral-400">… est en train d’écrire</div>
-        )}
-      </div>
-
-      <div className="mt-3 flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-          placeholder={`Écris à ${slug}…`}
-          className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
-        />
-        <button
-          onClick={send}
-          disabled={typing || !input.trim()}
-          className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+        <div
+          ref={scroller}
+          className="h-[58svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
         >
-          Envoyer
-        </button>
-      </div>
-    </section>
+          {msgs.length === 0 && (
+            <p className="text-sm text-neutral-400">
+              Pose une question à <b className="capitalize">{slug}</b>. Réponse courte, naturelle.
+            </p>
+          )}
+
+          {msgs.map((m, i) => (
+            <div key={i} className={m.role === "user" ? "text-right" : ""}>
+              <div
+                className={`inline-block max-w-[88%] px-3 py-2 rounded-xl leading-relaxed ${
+                  m.role === "user" ? "bg-white/10" : "bg-white/5"
+                }`}
+              >
+                {m.content}
+              </div>
+            </div>
+          ))}
+
+          {/* indicateur de frappe */}
+          {typing && !gotFirstChunk && (
+            <div className="text-xs text-neutral-400">… est en train d’écrire</div>
+          )}
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+            placeholder={`Écris à ${slug}…`}
+            className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
+          />
+          <button
+            onClick={send}
+            disabled={typing || !input.trim()}
+            className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
+          >
+            Envoyer
+          </button>
+        </div>
+      </section>
+    </>
   );
 }
