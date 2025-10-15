@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -42,6 +42,20 @@ export default function Solutions() {
 
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
+
+  // ⬇️ Bump appliqué UNIQUEMENT sur tablettes (iPad compris)
+  const [tabletBump, setTabletBump] = useState(0);
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse) and (min-width:820px) and (max-width:1400px)');
+    const update = () => setTabletBump(mq.matches ? 28 : 0); // ajuste 24–36px si besoin
+    update();
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else mq.addListener(update); // Safari plus ancien
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, []);
 
   const roleClass = (role: 'left' | 'center' | 'right') => {
     const base =
@@ -107,8 +121,7 @@ export default function Solutions() {
               sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
               className="object-contain select-none pointer-events-none origin-bottom transition-transform duration-300"
               style={{
-                // on applique un “bump” tablette via la variable CSS --tablet-bump (définie plus bas)
-                transform: `translateY(calc(${cfg.offsetY}px + var(--tablet-bump, 0px))) scale(${cfg.scale})`,
+                transform: `translateY(${cfg.offsetY + tabletBump}px) scale(${cfg.scale})`,
                 objectPosition: 'center bottom'
               }}
             />
@@ -208,7 +221,6 @@ export default function Solutions() {
               const active = i === current;
               return (
                 <li key={c.slug} className="group relative shrink-0">
-                  {/* halo derrière */}
                   <span
                     aria-hidden
                     className={[
@@ -227,7 +239,7 @@ export default function Solutions() {
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" draggable={false}/>
+                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" draggable={false} />
                   </button>
                 </li>
               );
@@ -236,15 +248,9 @@ export default function Solutions() {
         </div>
       </div>
 
-      {/* utilitaires + bump tablette */}
       <style jsx>{`
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* Bump vertical pour iPad/tablettes en paysage,
-           pour éviter que la tête soit coupée dans la carte centrale */
-        @media (min-width: 820px) and (max-width: 1180px) and (orientation: landscape) {
-          :root { --tablet-bump: 24px; }
-        }
       `}</style>
     </section>
   );
