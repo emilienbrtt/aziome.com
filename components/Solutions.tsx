@@ -5,10 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ========= Réglages visuels ========= */
+/* ========= Réglages visuels =========
+   - On augmente la hauteur des cartes en lg (tablette ~ iPad)
+   - On ajoute un léger padding-top au centre pour éviter que la tête touche le haut
+*/
 const TUNE_DESKTOP = {
-  center: { scale: 1.62, offsetY: 6,  pb: 84 },
-  side:   { scale: 1.52, offsetY: 4,  pb: 84 },
+  center: { scale: 1.58, offsetY: 8,  pt: 20, pb: 80 }, // pt ajouté, scale un poil moins agressif
+  side:   { scale: 1.48, offsetY: 6,              pb: 80 },
 };
 const TUNE_MOBILE = {
   center: { scale: 1.35, offsetY: 32, pt: 16, pb: 98 },
@@ -75,7 +78,7 @@ export default function Solutions() {
 
     return (
       <div className={roleClass(role)} tabIndex={-1}>
-        {/* Halo doré radial (au survol) */}
+        {/* Halo doré radial (hover) */}
         <div
           aria-hidden
           className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
@@ -84,18 +87,29 @@ export default function Solutions() {
               'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
           }}
         />
-        {/* Bloc image */}
+
+        {/* Bloc image
+           ⬇️ On donne plus de hauteur en lg (tablette) pour éviter la coupe de la tête.
+        */}
         <div
-          className={mobile ? 'relative bg-black' : 'relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]'}
+          className={
+            mobile
+              ? 'relative bg-black'
+              : 'relative bg-black h-[360px] md:h-[420px] lg:h-[480px] xl:h-[420px]'
+          }
           style={mobile ? { height: TUNE_MOBILE.imgHeight } : undefined}
         >
-          <div className="absolute inset-0" style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}>
+          {/* pt = air en haut ; pb = place pour le dégradé texte */}
+          <div
+            className="absolute inset-0"
+            style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}
+          >
             <Image
               src={data.image}
               alt={data.name}
               fill
               priority={isCenter}
-              sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
+              sizes="(max-width: 768px) 84vw, (max-width: 1280px) 38vw, 32vw"
               className="object-contain select-none pointer-events-none origin-bottom transition-transform duration-300"
               style={{
                 transform: `translateY(${cfg.offsetY}px) scale(${cfg.scale})`,
@@ -135,7 +149,7 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* ===== Desktop (>= md) ===== */}
+      {/* Desktop (>= md) */}
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
@@ -164,7 +178,7 @@ export default function Solutions() {
         </div>
       </div>
 
-      {/* ===== Mobile (< md) : PAS de swipe, flèches + vignettes ===== */}
+      {/* Mobile */}
       <div className="md:hidden relative px-2">
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} mobile />
 
@@ -190,45 +204,32 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : cadre constant + halo doré derrière (au-dessus du bloc) */}
-        <div className="mt-4 relative z-30">
-          <ul className="relative z-30 flex gap-4 overflow-x-auto px-1 no-scrollbar">
+        {/* Vignettes avec halo doré derrière */}
+        <div className="mt-4">
+          <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
-                <li key={c.slug} className="relative group shrink-0 overflow-visible">
-                  {/* Halo radial derrière — s'affiche quand actif OU hover/press */}
+                <li key={c.slug} className="group relative shrink-0">
                   <span
                     aria-hidden
                     className={[
-                      'absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-200',
-                      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-active:opacity-100'
+                      'absolute -inset-3 rounded-3xl z-0 transition-opacity duration-200',
+                      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                     ].join(' ')}
                     style={{
-                      transform: 'scale(1.6)',                 // étend le halo autour
                       background:
-                        'radial-gradient(55% 55% at 50% 50%, rgba(212,175,55,0.42), rgba(212,175,55,0.18) 60%, rgba(0,0,0,0) 70%)',
-                      filter: 'blur(12px)',
-                      zIndex: 0
+                        'radial-gradient(120% 120% at 50% 50%, rgba(212,175,55,0.45), rgba(212,175,55,0.18), rgba(0,0,0,0) 70%)',
+                      filter: 'blur(10px)'
                     }}
                   />
-                  {/* Vignette : cadre/fond ne changent pas */}
                   <button
                     onClick={() => setCurrent(i)}
-                    className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center
-                               border border-white/24 bg-black/10
-                               outline-none focus:outline-none select-none"
+                    className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center border border-white/24 bg-black/10 outline-none select-none"
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <Image
-                      src={c.image}
-                      alt={c.name}
-                      width={34}
-                      height={34}
-                      className="object-contain"
-                      draggable={false}
-                    />
+                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" />
                   </button>
                 </li>
               );
