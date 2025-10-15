@@ -1,187 +1,88 @@
-// /app/chat/[slug]/page.tsx
-"use client";
+// app/agents/[slug]/page.tsx
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { AgentKey } from "@/config";
+import { AGENTS } from "@/config";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+export default function AgentDetailsPage({ params }: { params: { slug: AgentKey } }) {
+  const agent = AGENTS[params.slug];
+  if (!agent) return notFound();
 
-type Msg = { role: "user" | "assistant"; content: string };
-type AgentKey = "max" | "lea" | "jules" | "mia" | "chris";
-const VALID: AgentKey[] = ["max", "lea", "jules", "mia", "chris"];
-
-export default function ChatPage({ params }: { params: { slug: string } }) {
-  const router = useRouter();
-  const slug = (params.slug?.toLowerCase() ?? "") as AgentKey;
-  if (!VALID.includes(slug)) router.push("/");
-
-  const agentLabel: Record<AgentKey, string> = {
-    max: "Max",
-    lea: "Léa",
-    jules: "Jules",
-    mia: "Mia",
-    chris: "Chris",
-  };
-  const header = `${agentLabel[slug]}`;
-
-  const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [typing, setTyping] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // À chaque navigation sur la page : on repart de zéro (pas de persistance)
-  useEffect(() => {
-    setMsgs([]);
-  }, [slug]);
-
-  useEffect(() => {
-    listRef.current?.scrollTo({
-      top: listRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [msgs, typing]);
-
-  async function send() {
-    const question = input.trim();
-    if (!question || typing) return;
-
-    // Ajoute le message utilisateur
-    setMsgs((m) => [...m, { role: "user", content: question }]);
-    setInput("");
-    setTyping(true);
-
-    // Place un message assistant “vide” qu’on va remplir en streaming
-    setMsgs((m) => [...m, { role: "assistant", content: "" }]);
-
-    try {
-      const res = await fetch("/api/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: question,
-          agent: slug,
-          history: msgs.slice(-8),
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-      let assistantText = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") continue;
-
-          try {
-            const json = JSON.parse(data);
-            const delta = json?.choices?.[0]?.delta?.content ?? "";
-            if (delta) {
-              assistantText += delta;
-
-              // met à jour le dernier message assistant
-              setMsgs((prev) => {
-                const copy = [...prev];
-                // dernier index est l'assistant “vide”
-                copy[copy.length - 1] = { role: "assistant", content: assistantText };
-                return copy;
-              });
-            }
-          } catch {
-            // ignore lignes incomplètes
-          }
-        }
-      }
-    } catch (e) {
-      setMsgs((prev) => {
-        const copy = [...prev];
-        copy[copy.length - 1] = {
-          role: "assistant",
-          content:
-            "Désolé, je n’arrive pas à répondre pour le moment. On peut réessayer dans un instant.",
-        };
-        return copy;
-      });
-    } finally {
-      setTyping(false);
-    }
-  }
-
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") send();
-  }
+  // Nom court pour le bouton
+  const shortName = agent.name;
 
   return (
-    <section className="min-h-[100svh] max-w-2xl mx-auto px-4 py-6">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{header}</h1>
-        <button
-          onClick={() => router.back()}
-          className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
-        >
-          ← Retour
-        </button>
-      </header>
-
-      <p className="sr-only">Pose une question à {header}.</p>
-
+    <section className="relative max-w-6xl mx-auto px-6 pt-12 md:pt-16 pb-16 md:pb-20">
+      {/* halo discret */}
       <div
-        ref={listRef}
-        className="h-[60svh] md:h-[64svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
-      >
-        {msgs.length === 0 && (
-          <p className="text-sm text-neutral-400">
-            Pose une question à <b>{header}</b>.
-          </p>
-        )}
+        aria-hidden
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
+        style={{ background: "radial-gradient(ellipse at center, rgba(212,175,55,0.16), transparent 60%)" }}
+      />
 
-        {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <div
-              className={[
-                "inline-block max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed",
-                m.role === "user" ? "bg-white/10" : "bg-white/5",
-              ].join(" ")}
-            >
-              {m.content}
-            </div>
-          </div>
-        ))}
-
-        {typing && (
-          <div className="inline-block px-3 py-2 rounded-xl bg-white/5 text-sm text-neutral-400">
-            {header} est en train d’écrire…
-          </div>
-        )}
+      {/* back */}
+      <div className="mb-6 md:mb-8">
+        <Link href="/#solutions" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
+          ← Revenir aux agents
+        </Link>
       </div>
 
-      <div className="mt-3 flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKey}
-          placeholder={`Écris à ${header}…`}
-          className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
-        />
-        <button
-          onClick={send}
-          disabled={typing}
-          className="rounded-xl px-3 py-2 bg-[color:var(--gold-1)] text-black disabled:opacity-50"
-        >
-          Envoyer
-        </button>
+      {/* HERO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
+        {/* Visuel */}
+        <div className="relative h-[460px] sm:h-[520px] md:h-[560px] lg:h-[600px]">
+          <Image
+            src={agent.avatar}
+            alt={agent.name}
+            fill
+            priority
+            className="object-contain select-none pointer-events-none"
+            style={{ objectPosition: "center center" }}
+          />
+        </div>
+
+        {/* Infos + CTA */}
+        <div>
+          <h1 className="text-3xl md:text-4xl font-semibold">{agent.name}</h1>
+          <p className="text-muted mt-1">{agent.subtitle}</p>
+          <p className="mt-5 text-base leading-relaxed text-white/90">{agent.intro}</p>
+
+          <div className="mt-6">
+            <Link
+              href={`/chat/${params.slug}`}
+              className="
+                inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-black
+                bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
+                ring-1 ring-white/10 shadow-[0_0_50px_rgba(212,175,55,0.30)]
+                hover:shadow-[0_0_80px_rgba(212,175,55,0.38)] transition
+              "
+            >
+              Parler à {shortName}
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Détails */}
+      <div className="mt-12 md:mt-14 grid md:grid-cols-3 gap-6 text-sm">
+        <InfoCard title="Pourquoi c’est utile" items={agent.why} />
+        <InfoCard title="Ça marche avec" items={agent.stacks} />
+        <InfoCard title="Ce que vous voyez" items={agent.youSee} />
       </div>
     </section>
+  );
+}
+
+function InfoCard({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="glass rounded-2xl p-6">
+      <h2 className="font-medium mb-3">{title}</h2>
+      <ul className="list-disc pl-5 space-y-1 text-muted">
+        {items.map((x, i) => (
+          <li key={i}>{x}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
