@@ -190,27 +190,29 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : CADRE CONSTANT + halo doré DERRIÈRE (box-shadow seulement) */}
-        <div className="mt-4">
-          <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
+        {/* Vignettes : cadre constant + halo doré derrière (au-dessus du bloc) */}
+        <div className="mt-4 relative z-30">
+          <ul className="relative z-30 flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
-                <li key={c.slug} className="relative group shrink-0">
-                  {/* Halo doré derrière — pas de background, uniquement des box-shadows */}
-                  {/* Visible si actif, sinon visible au survol */}
+                <li key={c.slug} className="relative group shrink-0 overflow-visible">
+                  {/* Halo radial derrière — s'affiche quand actif OU hover/press */}
                   <span
                     aria-hidden
                     className={[
-                      'absolute inset-0 rounded-2xl pointer-events-none z-0 transition-opacity duration-200',
-                      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      'absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-200',
+                      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-active:opacity-100'
                     ].join(' ')}
                     style={{
-                      boxShadow:
-                        '0 0 18px rgba(212,175,55,0.40), 0 0 36px rgba(212,175,55,0.32), 0 0 58px rgba(212,175,55,0.22)'
+                      transform: 'scale(1.6)',                 // étend le halo autour
+                      background:
+                        'radial-gradient(55% 55% at 50% 50%, rgba(212,175,55,0.42), rgba(212,175,55,0.18) 60%, rgba(0,0,0,0) 70%)',
+                      filter: 'blur(12px)',
+                      zIndex: 0
                     }}
                   />
-                  {/* Vignette : cadre et fond constants */}
+                  {/* Vignette : cadre/fond ne changent pas */}
                   <button
                     onClick={() => setCurrent(i)}
                     className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center
