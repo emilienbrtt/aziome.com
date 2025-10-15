@@ -86,7 +86,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
         >
           {msgs.length === 0 && (
             <p className="text-sm text-neutral-400">
-              Pose une question à <b className="capitalize">{slug}</b>. Réponse courte, naturelle.
+              Pose une question à <b className="capitalize">{slug}</b>.
             </p>
           )}
 
