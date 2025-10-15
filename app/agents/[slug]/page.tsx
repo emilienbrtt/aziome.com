@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import ChatCTA from './ChatCTA';
 
 type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
@@ -117,7 +116,7 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
         </Link>
       </div>
 
-      {/* HERO : desktop centré, mobile un peu remonté */}
+      {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
         {/* Visuel */}
         <div className="relative h-[460px] sm:h-[500px] md:h-[560px] lg:h-[600px]">
@@ -130,7 +129,6 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
               object-contain pointer-events-none select-none
               -translate-y-[120px] sm:-translate-y-[140px] md:translate-y-0
               scale-[1.24] md:scale-[1.18]"
-            /* centre verticalement sur desktop pour qu'il ne touche ni le haut ni les cartes */
             style={{ objectPosition: 'center center' }}
           />
         </div>
@@ -140,8 +138,20 @@ export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
           <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
           <p className="text-muted mt-1">{current.subtitle}</p>
           <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
+
+          {/* BOUTON -> page de chat dédiée */}
           <div className="mt-6">
-            <ChatCTA agentName={current.name} />
+            <Link
+              href={`/chat/${params.slug}`}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-black
+                         bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
+                         ring-1 ring-white/10
+                         shadow-[0_0_34px_rgba(212,175,55,0.28)]
+                         hover:shadow-[0_0_60px_rgba(212,175,55,0.36)]
+                         transition"
+            >
+              Parler à {current.name} <span aria-hidden>→</span>
+            </Link>
           </div>
         </div>
       </div>
