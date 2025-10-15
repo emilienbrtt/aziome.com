@@ -84,7 +84,6 @@ export default function Solutions() {
               'radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.22), rgba(246,231,178,0.10), rgba(0,0,0,0) 70%)'
           }}
         />
-
         {/* Bloc image */}
         <div
           className={mobile ? 'relative bg-black' : 'relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]'}
@@ -191,14 +190,14 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : glow doré DERRIÈRE (pas sur l’image) */}
+        {/* Vignettes : CADRE CONSTANT + halo doré DERRIÈRE */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
                 <li key={c.slug} className="group relative shrink-0">
-                  {/* Glow placé DERRIÈRE le bouton */}
+                  {/* Halo doré derrière (ne change pas le cadre) */}
                   <span
                     aria-hidden
                     className={[
@@ -215,10 +214,9 @@ export default function Solutions() {
                     onClick={() => setCurrent(i)}
                     className={[
                       'relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center',
-                      'border outline-none focus:outline-none focus-visible:outline-none select-none transition',
-                      active
-                        ? 'border-[rgba(212,175,55,0.70)] bg-black/30'
-                        : 'border-white/24 hover:border-white/36 bg-black/10'
+                      // ⬇️ Cadre NE CHANGE PAS (même couleur actif/hover)
+                      'border border-white/24 bg-black/10',
+                      'outline-none focus:outline-none select-none'
                     ].join(' ')}
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
