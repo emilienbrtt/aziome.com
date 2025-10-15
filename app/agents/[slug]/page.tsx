@@ -1,80 +1,192 @@
-// app/agents/[slug]/page.tsx
-import Image from "next/image";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import type { AgentKey } from "@/config";
-import { AGENTS } from "@/config";
+import Image from 'next/image';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import ChatCTA from './ChatCTA';
 
-export default function AgentDetailsPage({ params }: { params: { slug: AgentKey } }) {
-  const agent = AGENTS[params.slug];
-  if (!agent) return notFound();
+type AgentKey = 'max' | 'lea' | 'jules' | 'mia' | 'chris';
 
-  // Nom court pour le bouton
-  const shortName = agent.name;
+const AGENTS: Record<
+  AgentKey,
+  {
+    name: 'Max' | 'Léa' | 'Jules' | 'Mia' | 'Chris';
+    subtitle: string;
+    avatar: string;
+    intro: string;
+    why: string[];
+    stacks: string[];
+    youSee: string[];
+  }
+> = {
+  max: {
+    name: 'Max',
+    subtitle: 'CRM & Relances',
+    avatar: '/agents/max.png',
+    intro:
+      "Récupère les paniers abandonnés, relance au bon moment et s’arrête dès que le client répond.",
+    why: [
+      'Vous récupérez des ventes perdues.',
+      'Plus de clients reviennent acheter.',
+      'Messages clairs, au bon moment.',
+    ],
+    stacks: ['Email, SMS, WhatsApp', 'Shopify, Stripe', 'Klaviyo, Mailchimp, HubSpot'],
+    youSee: ['Ventes récupérées', 'Taux d’ouverture et de réponse', 'Clients réactivés'],
+  },
+  lea: {
+    name: 'Léa',
+    subtitle: 'Service après-vente (SAV)',
+    avatar: '/agents/lea.png',
+    intro:
+      'Répond vite et clairement, suit les commandes et transfère à un humain si besoin.',
+    why: [
+      'Moins d’attente pour vos clients',
+      'Moins de charge pour l’équipe',
+      'Vous gardez la main à tout moment',
+    ],
+    stacks: ['Email, chat, WhatsApp', 'Gorgias, Zendesk, Freshdesk', 'Shopify, WooCommerce'],
+    youSee: ['Temps de réponse moyen', 'Demandes résolues par l’agent', 'Satisfaction client'],
+  },
+  jules: {
+    name: 'Jules',
+    subtitle: 'Reporting & Résultats',
+    avatar: '/agents/jules.png',
+    intro:
+      'Met vos chiffres sur une page simple, alerte en cas d’anomalie, répond aux questions (“Combien hier ?”).',
+    why: [
+      'Vous savez où vous en êtes chaque jour',
+      'Vous repérez les soucis tout de suite',
+      'Moins de fichiers, plus de clarté',
+    ],
+    stacks: ['Shopify / WooCommerce', 'Gorgias / Zendesk', 'Google Sheets, Looker, Notion'],
+    youSee: ['Tableau à jour', 'Alertes email / Slack', 'Résumé hebdomadaire'],
+  },
+  mia: {
+    name: 'Mia',
+    subtitle: 'Premier contact & Orientation',
+    avatar: '/agents/mia.png',
+    intro:
+      'Accueille chaque demande, pose les bonnes questions et oriente vers la bonne personne.',
+    why: [
+      'Réponses immédiates, 24h/24',
+      'Moins d’appels ou emails perdus',
+      'Parcours client plus fluide',
+    ],
+    stacks: ['Chat du site, formulaire, email', 'WhatsApp, Facebook/Instagram', 'Transcriptions d’appels, Slack'],
+    youSee: ['Demandes prises en charge', 'Catégories & motifs récurrents', 'Taux de transfert vers humain'],
+  },
+  chris: {
+    name: 'Chris',
+    subtitle: 'Démarches RH & Support interne',
+    avatar: '/agents/chris.png',
+    intro:
+      'Prend en charge les demandes internes (attestations, absences), prépare les documents et répond aux questions.',
+    why: [
+      'Moins d’administratif pour les RH',
+      'Réponses rapides pour les équipes',
+      'Moins d’erreurs et de retards',
+    ],
+    stacks: ['Google Workspace/Drive, Notion', 'Slack ou Microsoft Teams', 'Outils SIRH (placeholders)'],
+    youSee: ['Demandes traitées', 'Documents générés', 'Délai moyen de réponse'],
+  },
+};
+
+export async function generateMetadata({ params }: { params: { slug: AgentKey } }): Promise<Metadata> {
+  const a = AGENTS[params.slug];
+  return { title: `${a?.name ?? 'Agent'} — Aziome` };
+}
+
+export default function AgentPage({ params }: { params: { slug: AgentKey } }) {
+  const current = AGENTS[params.slug];
+  if (!current) return notFound();
+
+  const others = (Object.keys(AGENTS) as AgentKey[]).filter((k) => k !== params.slug);
 
   return (
-    <section className="relative max-w-6xl mx-auto px-6 pt-12 md:pt-16 pb-16 md:pb-20">
+    <section className="relative max-w-6xl mx-auto px-6 pt-10 md:pt-20 pb-16 md:pb-20">
       {/* halo discret */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] opacity-25 blur-3xl"
-        style={{ background: "radial-gradient(ellipse at center, rgba(212,175,55,0.16), transparent 60%)" }}
+        style={{ background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.16), transparent 60%)' }}
       />
 
-      {/* back */}
+      {/* back -> vers la section de la home */}
       <div className="mb-6 md:mb-8">
         <Link href="/#solutions" className="text-sm text-[color:var(--gold-1)] hover:opacity-90">
           ← Revenir aux agents
         </Link>
       </div>
 
-      {/* HERO */}
+      {/* HERO : desktop centré, mobile un peu remonté */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
         {/* Visuel */}
-        <div className="relative h-[460px] sm:h-[520px] md:h-[560px] lg:h-[600px]">
+        <div className="relative h-[460px] sm:h-[500px] md:h-[560px] lg:h-[600px]">
           <Image
-            src={agent.avatar}
-            alt={agent.name}
+            src={current.avatar}
+            alt={current.name}
             fill
             priority
-            className="object-contain select-none pointer-events-none"
-            style={{ objectPosition: "center center" }}
+            className="
+              object-contain pointer-events-none select-none
+              -translate-y-[120px] sm:-translate-y-[140px] md:translate-y-0
+              scale-[1.24] md:scale-[1.18]"
+            /* centre verticalement sur desktop pour qu'il ne touche ni le haut ni les cartes */
+            style={{ objectPosition: 'center center' }}
           />
         </div>
 
         {/* Infos + CTA */}
         <div>
-          <h1 className="text-3xl md:text-4xl font-semibold">{agent.name}</h1>
-          <p className="text-muted mt-1">{agent.subtitle}</p>
-          <p className="mt-5 text-base leading-relaxed text-white/90">{agent.intro}</p>
-
+          <h1 className="text-3xl md:text-4xl font-semibold">{current.name}</h1>
+          <p className="text-muted mt-1">{current.subtitle}</p>
+          <p className="mt-5 text-base leading-relaxed text-white/90">{current.intro}</p>
           <div className="mt-6">
-            <Link
-              href={`/chat/${params.slug}`}
-              className="
-                inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-black
-                bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
-                ring-1 ring-white/10 shadow-[0_0_50px_rgba(212,175,55,0.30)]
-                hover:shadow-[0_0_80px_rgba(212,175,55,0.38)] transition
-              "
-            >
-              Parler à {shortName}
-            </Link>
+            <ChatCTA agentName={current.name} />
           </div>
         </div>
       </div>
 
       {/* Détails */}
       <div className="mt-12 md:mt-14 grid md:grid-cols-3 gap-6 text-sm">
-        <InfoCard title="Pourquoi c’est utile" items={agent.why} />
-        <InfoCard title="Ça marche avec" items={agent.stacks} />
-        <InfoCard title="Ce que vous voyez" items={agent.youSee} />
+        <Card title="Pourquoi c’est utile" items={current.why} />
+        <Card title="Ça marche avec" items={current.stacks} />
+        <Card title="Ce que vous voyez" items={current.youSee} />
+      </div>
+
+      {/* Autres agents */}
+      <div className="mt-12">
+        <h3 className="text-base font-medium mb-4">Explorer les autres agents</h3>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {others.map((k) => {
+            const a = AGENTS[k];
+            return (
+              <Link
+                key={k}
+                href={`/agents/${k}`}
+                className="min-w-[220px] glass rounded-2xl p-4 flex items-center gap-3 hover:shadow-[0_0_55px_rgba(212,175,55,0.25)] transition-shadow"
+              >
+                <Image
+                  src={a.avatar}
+                  alt={a.name}
+                  width={40}
+                  height={40}
+                  className="rounded-full ring-1 ring-white/10 object-cover"
+                />
+                <div>
+                  <div className="font-medium">{a.name}</div>
+                  <div className="text-xs text-muted">{a.subtitle}</div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-function InfoCard({ title, items }: { title: string; items: string[] }) {
+/* — Sous-composant — */
+function Card({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="glass rounded-2xl p-6">
       <h2 className="font-medium mb-3">{title}</h2>
