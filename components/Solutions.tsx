@@ -1,4 +1,4 @@
-`'use client';
+'use client';
 
 import React, { useCallback, useState } from 'react';
 import Image from 'next/image';
@@ -7,8 +7,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ========= Réglages visuels ========= */
 const TUNE_DESKTOP = {
-  center: { scale: 1.58, offsetY: 8,  pt: 20, pb: 80 }, // offsetY = base (on ajoute un "bump" iPad via CSS plus bas)
-  side:   { scale: 1.48, offsetY: 6,             pb: 80 },
+  center: { scale: 1.62, offsetY: 6,  pb: 84 },
+  side:   { scale: 1.52, offsetY: 4,  pb: 84 },
 };
 const TUNE_MOBILE = {
   center: { scale: 1.35, offsetY: 32, pt: 16, pb: 98 },
@@ -49,12 +49,23 @@ export default function Solutions() {
     const anim = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]';
 
     if (role === 'center') {
-      return base + ' ' + anim +
-        ' ring-white/15 hover:ring-[rgba(212,175,55,0.50)] hover:shadow-[0_0_120px_rgba(212,175,55,0.28)] scale-100 opacity-100 z-[2]';
+      return [
+        base,
+        anim,
+        'ring-white/15 hover:ring-[rgba(212,175,55,0.50)]',
+        'hover:shadow-[0_0_120px_rgba(212,175,55,0.28)]',
+        'scale-100 opacity-100 z-[2]',
+      ].join(' ');
     }
     const shift = role === 'left' ? '-translate-x-2 md:-translate-x-3' : 'translate-x-2 md:translate-x-3';
-    return base + ' ' + anim +
-      ' ring-white/10 hover:ring-[rgba(212,175,55,0.38)] hover:shadow-[0_0_100px_rgba(212,175,55,0.22)] scale-[0.95] opacity-90 ' + shift;
+    return [
+      base,
+      anim,
+      'ring-white/10 hover:ring-[rgba(212,175,55,0.38)]',
+      'hover:shadow-[0_0_100px_rgba(212,175,55,0.22)]',
+      'scale-[0.95] opacity-90',
+      shift,
+    ].join(' ');
   };
 
   function Card({
@@ -71,8 +82,8 @@ export default function Solutions() {
     const isCenter = role === 'center';
 
     return (
-      <div className={roleClass(role) + (isCenter ? ' card-center' : '')} tabIndex={-1}>
-        {/* Halo doré radial */}
+      <div className={roleClass(role)} tabIndex={-1}>
+        {/* Halo doré radial (au survol) */}
         <div
           aria-hidden
           className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition duration-300 -z-[1]"
@@ -82,13 +93,9 @@ export default function Solutions() {
           }}
         />
 
-        {/* Bloc image — plus de hauteur en lg pour les tablettes */}
+        {/* Bloc image */}
         <div
-          className={
-            mobile
-              ? 'relative bg-black'
-              : 'relative bg-black h-[360px] md:h-[420px] lg:h-[480px] xl:h-[420px]'
-          }
+          className={mobile ? 'relative bg-black' : 'relative bg-black h-[340px] sm:h-[380px] lg:h-[420px]'}
           style={mobile ? { height: TUNE_MOBILE.imgHeight } : undefined}
         >
           <div className="absolute inset-0" style={{ paddingTop: cfg.pt ?? 0, paddingBottom: cfg.pb }}>
@@ -97,11 +104,11 @@ export default function Solutions() {
               alt={data.name}
               fill
               priority={isCenter}
-              sizes="(max-width: 768px) 84vw, (max-width: 1280px) 38vw, 32vw"
+              sizes="(max-width: 768px) 84vw, (max-width: 1024px) 60vw, 32vw"
               className="object-contain select-none pointer-events-none origin-bottom transition-transform duration-300"
               style={{
-                /* ⬇️ on ajoute un bump vertical spécifique iPad via la variable --ipad-bump */
-                transform: `translateY(calc(${cfg.offsetY}px + var(--ipad-bump, 0px))) scale(${cfg.scale})`,
+                // on applique un “bump” tablette via la variable CSS --tablet-bump (définie plus bas)
+                transform: `translateY(calc(${cfg.offsetY}px + var(--tablet-bump, 0px))) scale(${cfg.scale})`,
                 objectPosition: 'center bottom'
               }}
             />
@@ -122,6 +129,7 @@ export default function Solutions() {
           </Link>
         </div>
 
+        {/* Assombrissement des cartes latérales */}
         {role !== 'center' && <div className="pointer-events-none absolute inset-0 bg-black/45 z-20" aria-hidden />}
       </div>
     );
@@ -138,7 +146,7 @@ export default function Solutions() {
       <h2 className="text-3xl md:text-4xl font-semibold mb-8">Agents prêts à travailler.</h2>
       <p className="text-muted mb-6">Mettez l’IA au travail pour vous, en quelques jours.</p>
 
-      {/* Desktop (>= md) */}
+      {/* ===== Desktop (>= md) ===== */}
       <div className="hidden md:flex items-stretch justify-center gap-5 overflow-visible">
         <div className="relative w-[42%] md:w-[34%] lg:w-[30%] xl:w-[28%]">
           <button
@@ -167,7 +175,7 @@ export default function Solutions() {
         </div>
       </div>
 
-      {/* Mobile */}
+      {/* ===== Mobile (< md) : pas de swipe, flèches + vignettes ===== */}
       <div className="md:hidden relative px-2">
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} mobile />
 
@@ -193,13 +201,14 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes */}
+        {/* Vignettes : cadre constant + halo doré derrière */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
                 <li key={c.slug} className="group relative shrink-0">
+                  {/* halo derrière */}
                   <span
                     aria-hidden
                     className={[
@@ -214,11 +223,11 @@ export default function Solutions() {
                   />
                   <button
                     onClick={() => setCurrent(i)}
-                    className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center border border-white/24 bg-black/10 outline-none select-none"
+                    className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center border border-white/24 bg-black/10 outline-none focus:outline-none select-none"
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" />
+                    <Image src={c.image} alt={c.name} width={34} height={34} className="object-contain" draggable={false}/>
                   </button>
                 </li>
               );
@@ -227,23 +236,14 @@ export default function Solutions() {
         </div>
       </div>
 
+      {/* utilitaires + bump tablette */}
       <style jsx>{`
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* ===== Bump vertical iPad uniquement sur la carte CENTRALE =====
-           On définit une variable CSS --ipad-bump qu'on ajoute à translateY().
-           Ajuste les valeurs si besoin (+ haut = image descend).
-        */
-        .card-center { --ipad-bump: 0px; }
-
-        /* iPad / tablettes entre 1024 et 1199 px */
-        @media (min-width: 1024px) and (max-width: 1199px) {
-          .card-center { --ipad-bump: 26px; }
-        }
-        /* Grands iPad / 1200 à 1366 px */
-        @media (min-width: 1200px) and (max-width: 1366px) {
-          .card-center { --ipad-bump: 18px; }
+        /* Bump vertical pour iPad/tablettes en paysage,
+           pour éviter que la tête soit coupée dans la carte centrale */
+        @media (min-width: 820px) and (max-width: 1180px) and (orientation: landscape) {
+          :root { --tablet-bump: 24px; }
         }
       `}</style>
     </section>
