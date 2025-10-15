@@ -190,34 +190,32 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : CADRE CONSTANT + halo doré DERRIÈRE */}
+        {/* Vignettes : CADRE CONSTANT + halo doré DERRIÈRE (box-shadow seulement) */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
               const active = i === current;
               return (
-                <li key={c.slug} className="group relative shrink-0">
-                  {/* Halo doré derrière (ne change pas le cadre) */}
+                <li key={c.slug} className="relative group shrink-0">
+                  {/* Halo doré derrière — pas de background, uniquement des box-shadows */}
+                  {/* Visible si actif, sinon visible au survol */}
                   <span
                     aria-hidden
                     className={[
-                      'absolute -inset-3 rounded-3xl z-0 transition-opacity duration-200',
+                      'absolute inset-0 rounded-2xl pointer-events-none z-0 transition-opacity duration-200',
                       active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                     ].join(' ')}
                     style={{
-                      background:
-                        'radial-gradient(120% 120% at 50% 50%, rgba(212,175,55,0.45), rgba(212,175,55,0.18), rgba(0,0,0,0) 70%)',
-                      filter: 'blur(10px)'
+                      boxShadow:
+                        '0 0 18px rgba(212,175,55,0.40), 0 0 36px rgba(212,175,55,0.32), 0 0 58px rgba(212,175,55,0.22)'
                     }}
                   />
+                  {/* Vignette : cadre et fond constants */}
                   <button
                     onClick={() => setCurrent(i)}
-                    className={[
-                      'relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center',
-                      // ⬇️ Cadre NE CHANGE PAS (même couleur actif/hover)
-                      'border border-white/24 bg-black/10',
-                      'outline-none focus:outline-none select-none'
-                    ].join(' ')}
+                    className="relative z-10 h-12 w-12 rounded-2xl flex items-center justify-center
+                               border border-white/24 bg-black/10
+                               outline-none focus:outline-none select-none"
                     aria-label={c.name}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
