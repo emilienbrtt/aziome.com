@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ========= Réglages =========
-   ⚠️ Desktop inchangé (même tailles/positions).
+   ⚠️ Desktop inchangé (mêmes tailles/positions).
    Mobile seulement : on descend le perso & on protège contre la coupe.
 */
 const TUNE_DESKTOP = {
@@ -14,10 +14,8 @@ const TUNE_DESKTOP = {
   side:   { scale: 1.52, offsetY: 4,  pb: 84 },
 };
 const TUNE_MOBILE = {
-  // scale = taille (identique), offsetY = déplacement vers le BAS (+),
-  // pt = marge HAUT, pb = marge BAS (gradient)
-  center: { scale: 1.35, offsetY: 32, pt: 16, pb: 98 }, // ↓ VRAIMENT plus bas + plus d'air
-  imgHeight: 440, // hauteur du bloc noir sur mobile pour éviter toute coupe
+  center: { scale: 1.35, offsetY: 32, pt: 16, pb: 98 },
+  imgHeight: 440,
 };
 
 type CardDef = {
@@ -47,18 +45,6 @@ export default function Solutions() {
 
   const goNext = useCallback(() => setCurrent(c => mod(c + 1, n)), [n]);
   const goPrev = useCallback(() => setCurrent(c => mod(c - 1, n)), [n]);
-
-  // Swipe mobile simple et robuste
-  const touchStartX = useRef<number | null>(null);
-  const onTouchStart = (e: any) => { touchStartX.current = e.touches?.[0]?.clientX ?? null; };
-  const onTouchEnd   = (e: any) => {
-    if (touchStartX.current == null) return;
-    const dx = (e.changedTouches?.[0]?.clientX ?? 0) - touchStartX.current;
-    touchStartX.current = null;
-    const threshold = 40;
-    if (dx < -threshold) goNext();
-    else if (dx > threshold) goPrev();
-  };
 
   /* ===== Styles par rôle (DESKTOP — inchangé) ===== */
   const roleClass = (role: 'left' | 'center' | 'right') => {
@@ -122,6 +108,7 @@ export default function Solutions() {
                 transform: `translateY(${cfg.offsetY}px) scale(${cfg.scale})`,
                 objectPosition: 'center bottom'
               }}
+              draggable={false}
             />
           </div>
           {/* Gradient = même hauteur que la réserve bas */}
@@ -192,10 +179,15 @@ export default function Solutions() {
       </div>
 
       {/* ===== Mobile (< md) : 1 carte + flèches + vignettes ===== */}
-      <div className="md:hidden relative px-2" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div
+        className="md:hidden relative px-2"
+        /* Pas de swipe : on ne met pas d’onTouchStart/onTouchEnd, et on indique au navigateur
+           de privilégier le scroll vertical uniquement. */
+        style={{ touchAction: 'pan-y' }}
+      >
         <Card data={CARDS[idxCenter]} role="center" cfg={TUNE_MOBILE.center} mobile />
 
-        {/* Flèches — icône parfaitement centrée */}
+        {/* Flèches */}
         <button
           onClick={goPrev}
           className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full ring-1 ring-white/15 bg-white/5
@@ -217,7 +209,7 @@ export default function Solutions() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Vignettes : coins arrondis, contour BLANC (pas de bleu), actif doré */}
+        {/* Vignettes : on garde le choix par tap (si tu veux forcer 100% flèches, je peux les retirer aussi) */}
         <div className="mt-4">
           <ul className="flex gap-4 overflow-x-auto px-1 no-scrollbar">
             {CARDS.map((c, i) => {
@@ -242,7 +234,7 @@ export default function Solutions() {
               );
             })}
           </ul>
-          <div className="mt-3 text-center text-xs text-muted">Balayez ou utilisez les flèches</div>
+          {/* ⛔️ Texte d’aide supprimé */}
         </div>
       </div>
 
