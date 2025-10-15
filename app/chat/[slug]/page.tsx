@@ -1,3 +1,4 @@
+// /app/chat/[slug]/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -16,8 +17,12 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
   const [gotFirstChunk, setGotFirstChunk] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
+  // Scroll auto
   useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+    scroller.current?.scrollTo({
+      top: scroller.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [msgs, typing]);
 
   async function send() {
@@ -30,7 +35,7 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
     setTyping(true);
     setGotFirstChunk(false);
 
-    // placeholder assistant message we progressively fill
+    // Placeholder assistant (qui va se remplir en streaming)
     setMsgs((prev) => [...prev, { role: "assistant", content: "" }]);
 
     const res = await fetch("/api/chat/stream", {
@@ -44,7 +49,10 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
     });
 
     const reader = res.body?.getReader();
-    if (!reader) { setTyping(false); return; }
+    if (!reader) {
+      setTyping(false);
+      return;
+    }
 
     const decoder = new TextDecoder();
     let acc = "";
@@ -67,15 +75,23 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
   }
 
   return (
-    <section className="min-h-[100svh] max-w-3xl mx-auto px-4 py-6">
+    // ⬇️ Conteneur RÉTRÉCI (max 620–700px selon la taille d’écran)
+    <section className="min-h-[100svh] w-full mx-auto px-4 py-6 max-w-[620px] md:max-w-[680px] lg:max-w-[700px]">
       <header className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold capitalize">{slug}</h1>
-        <button onClick={() => router.back()} className="text-sm text-[color:var(--gold-1)] hover:opacity-80">
+        <button
+          onClick={() => router.back()}
+          className="text-sm text-[color:var(--gold-1)] hover:opacity-80"
+        >
           ← Retour
         </button>
       </header>
 
-      <div ref={scroller} className="h-[65svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40">
+      {/* ⬇️ Zone de messages, largeur suit le conteneur au-dessus */}
+      <div
+        ref={scroller}
+        className="h-[62svh] overflow-y-auto rounded-2xl border border-white/10 p-4 space-y-3 bg-black/40"
+      >
         {msgs.length === 0 && (
           <p className="text-sm text-neutral-400">
             Pose une question à <b className="capitalize">{slug}</b>. Réponse courte, naturelle.
@@ -84,12 +100,18 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
 
         {msgs.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <div className={`inline-block max-w-[85%] px-3 py-2 rounded-xl ${m.role === "user" ? "bg-white/10" : "bg-white/5"}`}>
+            {/* ⬇️ Bulles un peu plus ÉTROITES pour des lignes plus lisibles */}
+            <div
+              className={`inline-block max-w-[78%] md:max-w-[72%] px-3 py-2 rounded-xl leading-relaxed ${
+                m.role === "user" ? "bg-white/10" : "bg-white/5"
+              }`}
+            >
               {m.content}
             </div>
           </div>
         ))}
 
+        {/* Indicateur de frappe */}
         {typing && !gotFirstChunk && (
           <div className="text-xs text-neutral-400">… est en train d’écrire</div>
         )}
@@ -99,7 +121,9 @@ export default function ChatPage({ params }: { params: { slug: string } }) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
           placeholder={`Écris à ${slug}…`}
           className="flex-1 rounded-xl border border-white/10 bg-black/60 px-3 py-2 outline-none"
         />
