@@ -38,21 +38,20 @@ export default function Header() {
 
         {/* NAV */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted">
-          {/* 1. Agents IA (ex-Solutions) */}
           <a href="#solutions" className="hover:text-fg">Agents IA</a>
-          {/* 2. Offres (ex-Confiance) -> vers #pricing */}
           <a href="#pricing" className="hover:text-fg">Offres</a>
-          {/* 3. Déploiement (ex-Méthode) -> court et clair */}
           <a href="#process" className="hover:text-fg">Déploiement</a>
-          {/* 4. Contact (inchangé) */}
           <a href="#contact" className="hover:text-fg">Contact</a>
         </nav>
 
-        {/* CTA — mène au formulaire, même gradient doré */}
-        <div className="py-3">
+        {/* CTA — plus compact sur mobile */}
+        <div className="py-2 md:py-3">
           <a
             href="/#contact"
-            className="inline-flex items-center rounded-md px-4 py-2 font-medium text-black
+            className="inline-flex items-center justify-center whitespace-nowrap
+                       text-sm px-3 py-1.5 rounded-xl
+                       md:text-base md:px-5 md:py-2 md:rounded-2xl
+                       font-medium text-black
                        bg-gradient-to-r from-[#D4AF37] via-[#EAD588] to-white
                        shadow hover:shadow-lg transition"
           >
